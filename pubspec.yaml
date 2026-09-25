@@ -1,0 +1,34 @@
+name: cafe_book_admin
+description: پنل مدیریت و حسابداری کافه‌کتاب (Android + Windows)
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  provider: ^6.1.2
+  intl: any
+  file_picker: ^9.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  # فونت فارسی (اختیاری ولی توصیه‌شده): فایل‌های Vazirmatn را در assets/fonts قرار دهید
+  # و این بخش را از حالت کامنت خارج کنید. تا آن زمان فونت سیستم استفاده می‌شود.
+  # fonts:
+  #   - family: Vazirmatn
+  #     fonts:
+  #       - asset: assets/fonts/Vazirmatn-Regular.ttf
+  #       - asset: assets/fonts/Vazirmatn-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Vazirmatn-Bold.ttf
+  #         weight: 700
