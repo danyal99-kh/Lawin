@@ -1,3 +1,6 @@
+import 'package:cafe_book_admin/pages/inventory/inventory_page.dart';
+import 'package:cafe_book_admin/pages/purchases/purchases_page.dart';
+import 'package:cafe_book_admin/pages/waste/waste_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,7 +9,6 @@ import '../../responsive/breakpoints.dart';
 import '../categories/categories_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../products/products_page.dart';
-import '../tables/tables_page.dart';
 import '../tables/tables_page.dart';
 import 'app_destination.dart';
 import 'app_drawer.dart';
@@ -59,6 +61,9 @@ class AppShell extends StatelessWidget {
         AppDestination.tables => const TablesPage(),
         AppDestination.products => const ProductsPage(),
         AppDestination.categories => const CategoriesPage(),
+        AppDestination.inventory => const InventoryPage(),
+        AppDestination.purchases => const PurchasesPage(),
+        AppDestination.waste => const WastePage(),
         _ => PlaceholderPage(destination: d),
       };
 }

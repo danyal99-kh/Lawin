@@ -1,3 +1,12 @@
+import 'package:cafe_book_admin/providers/inventory_provider.dart';
+import 'package:cafe_book_admin/providers/purchase_provider.dart';
+import 'package:cafe_book_admin/providers/waste_provider.dart';
+import 'package:cafe_book_admin/repositories/inventory_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_inventory_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_purchase_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_waste_repository.dart';
+import 'package:cafe_book_admin/repositories/purchase_repository.dart';
+import 'package:cafe_book_admin/repositories/waste_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
@@ -13,14 +22,11 @@ import '../repositories/mock/mock_product_repository.dart';
 import '../repositories/mock/mock_table_repository.dart';
 import '../services/image_picker_service.dart';
 import '../repositories/table_repository.dart';
-import '../repositories/mock/mock_product_repository.dart';
-import '../repositories/mock/mock_table_repository.dart';
-import '../services/image_picker_service.dart';
+
 import 'category_provider.dart';
 import 'dashboard_provider.dart';
 import 'navigation_provider.dart';
 import 'product_provider.dart';
-import 'table_provider.dart';
 import 'table_provider.dart';
 
 /// نقطه‌ی تزریق وابستگی‌ها.
@@ -78,6 +84,24 @@ class AppProviders extends StatelessWidget {
               devTools: (kDebugMode && AppConfig.useMock) ? repo : null,
             )..load();
           },
+        ),
+        Provider<InventoryRepository>(
+          create: (ctx) => MockInventoryRepository(ctx.read<MockDatabase>()),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => InventoryProvider(ctx.read<InventoryRepository>()),
+        ),
+        Provider<PurchaseRepository>(
+          create: (ctx) => MockPurchaseRepository(ctx.read<MockDatabase>()),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => PurchaseProvider(ctx.read<PurchaseRepository>()),
+        ),
+        Provider<WasteRepository>(
+          create: (ctx) => MockWasteRepository(ctx.read<MockDatabase>()),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => WasteProvider(ctx.read<WasteRepository>()),
         ),
       ],
       child: child,
