@@ -1,5 +1,7 @@
 import 'package:cafe_book_admin/pages/inventory/inventory_page.dart';
+import 'package:cafe_book_admin/pages/orders/orders_page.dart';
 import 'package:cafe_book_admin/pages/purchases/purchases_page.dart';
+import 'package:cafe_book_admin/pages/recipes/recipes_page.dart';
 import 'package:cafe_book_admin/pages/waste/waste_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -56,14 +58,9 @@ class AppShell extends StatelessWidget {
   static Widget _pageFor(AppDestination d) => switch (d) {
         AppDestination.dashboard => const DashboardPage(),
         AppDestination.tables => const TablesPage(),
+        AppDestination.orders => const OrdersPage(),
         AppDestination.products => const ProductsPage(),
         AppDestination.categories => const CategoriesPage(),
-        AppDestination.tables => const TablesPage(),
-        AppDestination.products => const ProductsPage(),
-        AppDestination.categories => const CategoriesPage(),
-        AppDestination.inventory => const InventoryPage(),
-        AppDestination.purchases => const PurchasesPage(),
-        AppDestination.waste => const WastePage(),
         _ => PlaceholderPage(destination: d),
       };
 }

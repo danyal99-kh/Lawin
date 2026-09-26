@@ -1,11 +1,17 @@
 import 'package:cafe_book_admin/providers/inventory_provider.dart';
+import 'package:cafe_book_admin/providers/order_provider.dart';
 import 'package:cafe_book_admin/providers/purchase_provider.dart';
+import 'package:cafe_book_admin/providers/recipe_provider.dart';
 import 'package:cafe_book_admin/providers/waste_provider.dart';
 import 'package:cafe_book_admin/repositories/inventory_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_inventory_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_order_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_purchase_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_waste_repository.dart';
+import 'package:cafe_book_admin/repositories/order_repository.dart';
 import 'package:cafe_book_admin/repositories/purchase_repository.dart';
+import 'package:cafe_book_admin/repositories/recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/waste_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -102,6 +108,19 @@ class AppProviders extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (ctx) => WasteProvider(ctx.read<WasteRepository>()),
+        ),
+        Provider<RecipeRepository>(
+          create: (ctx) => MockRecipeRepository(ctx.read<MockDatabase>()),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => RecipeProvider(ctx.read<RecipeRepository>()),
+        ),
+        Provider<OrderRepository>(
+          create: (ctx) => MockOrderRepository(ctx.read<MockDatabase>()),
+        ),
+        ChangeNotifierProvider(
+          lazy: false,
+          create: (ctx) => OrderProvider(ctx.read<OrderRepository>())..load(),
         ),
       ],
       child: child,

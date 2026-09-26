@@ -43,12 +43,11 @@ class TableProvider extends ChangeNotifier {
   bool _disposed = false;
 
   List<TableOverview> get _all => _state.data ?? const [];
-
+  List<TableOverview> get all => _all;
   List<TableOverview> get visible =>
       _all.where((o) => _filter.matches(o.status)).toList();
 
-  int countFor(TableFilter f) =>
-      _all.where((o) => f.matches(o.status)).length;
+  int countFor(TableFilter f) => _all.where((o) => f.matches(o.status)).length;
 
   void setFilter(TableFilter f) {
     if (f == _filter) return;
@@ -75,8 +74,7 @@ class TableProvider extends ChangeNotifier {
   Future<AppFailure?> setReserved(int tableId, bool reserved) async {
     _busy = true;
     _notify();
-    final result =
-        await _repository.setReserved(tableId, reserved: reserved);
+    final result = await _repository.setReserved(tableId, reserved: reserved);
     AppFailure? failure;
     result.when<void>(
       success: (updated) {

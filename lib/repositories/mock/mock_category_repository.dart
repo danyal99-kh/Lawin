@@ -26,8 +26,9 @@ class MockCategoryRepository implements CategoryRepository {
 
   AppFailure? _validate(String rawName, {int? excludeId}) {
     final name = rawName.trim();
-    if (name.isEmpty)
+    if (name.isEmpty) {
       return AppFailure.validation('نام دسته‌بندی را وارد کنید.');
+    }
     if (name.length > 40) {
       return AppFailure.validation('نام دسته‌بندی حداکثر ۴۰ حرف باشد.');
     }

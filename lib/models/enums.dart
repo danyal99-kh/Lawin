@@ -30,6 +30,22 @@ enum OrderStatus implements ApiEnum {
 
   /// سفارشی که هنوز بسته نشده است.
   bool get isOpen => this != paid && this != cancelled;
+
+  /// وضعیت بعدی در روند آشپزخانه (فقط تا «تحویل‌شده»؛ پرداخت مرحله‌ی جداست).
+  OrderStatus? get nextStep => switch (this) {
+        OrderStatus.newOrder => OrderStatus.preparing,
+        OrderStatus.preparing => OrderStatus.ready,
+        OrderStatus.ready => OrderStatus.delivered,
+        _ => null,
+      };
+
+  /// برچسب دکمه‌ی پیشبرد وضعیت.
+  String get advanceLabel => switch (this) {
+        OrderStatus.newOrder => 'شروع آماده‌سازی',
+        OrderStatus.preparing => 'آماده شد',
+        OrderStatus.ready => 'تحویل داده شد',
+        _ => '',
+      };
 }
 
 enum PaymentStatus implements ApiEnum {

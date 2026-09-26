@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:cafe_book_admin/models/recipe.dart';
+
 import '../../core/errors/app_failure.dart';
 import '../../models/cafe_table.dart';
 import '../../models/enums.dart';
@@ -22,6 +24,7 @@ class MockDatabase {
     required this.expenses,
     required this.inventoryItems,
     required this.sessions,
+    required this.recipes,
     required this.lastOrderNumber,
     required this.lastSessionNumber,
     required int productSeq,
@@ -37,12 +40,17 @@ class MockDatabase {
   final List<Expense> expenses;
   final List<InventoryItem> inventoryItems;
   final List<TableSession> sessions;
-
+  final Map<int, List<RecipeItem>> recipes;
   int lastOrderNumber;
   int lastSessionNumber;
 
   int _productSeq;
   int _categorySeq;
+  List<RecipeItem> recipeFor(int productId) => recipes[productId] ?? const [];
+
+  void setRecipe(int productId, List<RecipeItem> items) {
+    recipes[productId] = items;
+  }
 
   /// کاتالوگ ثابت محصولات (برای ساخت سفارش‌های Mock).
   static const catalog = <(int, String, int)>[
@@ -405,7 +413,58 @@ class MockDatabase {
           isActive: false),
       const Product(id: 14, name: 'براونی', categoryId: 6, price: 95000),
     ];
-
+    final recipes = <int, List<RecipeItem>>{
+      1: const [
+        // لاته
+        RecipeItem(
+            inventoryItemId: 1,
+            inventoryItemName: 'دانه‌ی قهوه اسپرسو',
+            unit: BaseUnit.gram,
+            quantity: 18),
+        RecipeItem(
+            inventoryItemId: 2,
+            inventoryItemName: 'شیر',
+            unit: BaseUnit.milliliter,
+            quantity: 200),
+      ],
+      2: const [
+        // کاپوچینو
+        RecipeItem(
+            inventoryItemId: 1,
+            inventoryItemName: 'دانه‌ی قهوه اسپرسو',
+            unit: BaseUnit.gram,
+            quantity: 18),
+        RecipeItem(
+            inventoryItemId: 2,
+            inventoryItemName: 'شیر',
+            unit: BaseUnit.milliliter,
+            quantity: 120),
+      ],
+      3: const [
+        // اسپرسو
+        RecipeItem(
+            inventoryItemId: 1,
+            inventoryItemName: 'دانه‌ی قهوه اسپرسو',
+            unit: BaseUnit.gram,
+            quantity: 18),
+      ],
+      4: const [
+        // چای ماسالا
+        RecipeItem(
+            inventoryItemId: 6,
+            inventoryItemName: 'چای سیاه',
+            unit: BaseUnit.gram,
+            quantity: 6),
+      ],
+      5: const [
+        // چای سیاه
+        RecipeItem(
+            inventoryItemId: 6,
+            inventoryItemName: 'چای سیاه',
+            unit: BaseUnit.gram,
+            quantity: 4),
+      ],
+    };
     return MockDatabase._(
       categories: categories,
       products: products,
@@ -418,6 +477,7 @@ class MockDatabase {
       sessions: sessions,
       lastOrderNumber: counter,
       lastSessionNumber: counter,
+      recipes: recipes,
     );
   }
 }
