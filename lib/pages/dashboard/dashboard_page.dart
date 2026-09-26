@@ -1,16 +1,16 @@
-import 'package:cafe_book_admin/providers/dashboard_provider.dart';
-import 'package:cafe_book_admin/providers/navigation_provider.dart';
-import 'package:cafe_book_admin/responsive/breakpoints.dart';
-import 'package:cafe_book_admin/responsive/page_container.dart';
-import 'package:cafe_book_admin/widgets/section_header.dart';
-import 'package:cafe_book_admin/widgets/state_views.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/persian_format.dart';
+import '../../core/utils/view_state.dart';
 import '../../models/dashboard_summary.dart';
-
+import '../../providers/dashboard_provider.dart';
+import '../../providers/navigation_provider.dart';
+import '../../responsive/breakpoints.dart';
+import '../../responsive/page_container.dart';
+import '../../widgets/section_header.dart';
+import '../../widgets/state_views.dart';
 import '../shell/app_destination.dart';
 import 'widgets/dashboard_stats.dart';
 import 'widgets/low_stock_banner.dart';
@@ -21,8 +21,24 @@ import 'widgets/tables_status_panel.dart';
 
 /// داشبورد ادمین: همه‌ی اطلاعات مهم در یک نگاه.
 /// دسکتاپ: دو ستون (میزها + سفارش‌ها | موجودی + هزینه‌ها). موبایل/تبلت: یک ستون عمودی.
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    // بار اول خود Provider بارگذاری می‌کند؛ در بازدیدهای بعدی (مثلاً بعد از رزرو میز) تازه‌سازی می‌کنیم.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final provider = context.read<DashboardProvider>();
+      if (provider.state.status == ViewStatus.success) provider.load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

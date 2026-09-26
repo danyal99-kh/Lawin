@@ -9,13 +9,14 @@ import '../../models/order.dart';
 import '../../models/product.dart';
 import '../../models/product_category.dart';
 import '../../models/table_session.dart';
-import '../../models/table_session.dart';
 
 /// دیتابیس درون‌حافظه‌ای برای توسعه‌ی UI تا زمانی که Django آماده نیست.
 /// همه‌ی Mock Repositoryها از یک نمونه‌ی مشترک استفاده می‌کنند تا داده‌ها با هم سازگار باشند.
 /// داده‌ها نسبت به «اکنون» ساخته می‌شوند، بنابراین داشبورد همیشه امروز و این ماه را پر نشان می‌دهد.
 class MockDatabase {
   MockDatabase._({
+    required this.categories,
+    required this.products,
     required this.tables,
     required this.orders,
     required this.expenses,
@@ -23,16 +24,27 @@ class MockDatabase {
     required this.sessions,
     required this.lastOrderNumber,
     required this.lastSessionNumber,
-  });
+    required int productSeq,
+    required int categorySeq,
+  })  : _productSeq = productSeq,
+        _categorySeq = categorySeq;
 
+  // ---------- داده‌های اصلی ----------
+  final List<ProductCategory> categories;
+  final List<Product> products;
   final List<CafeTable> tables;
   final List<Order> orders;
   final List<Expense> expenses;
   final List<InventoryItem> inventoryItems;
   final List<TableSession> sessions;
+
   int lastOrderNumber;
   int lastSessionNumber;
 
+  int _productSeq;
+  int _categorySeq;
+
+  /// کاتالوگ ثابت محصولات (برای ساخت سفارش‌های Mock).
   static const catalog = <(int, String, int)>[
     (1, 'لاته', 95000),
     (2, 'کاپوچینو', 90000),
@@ -57,6 +69,8 @@ class MockDatabase {
 
   int nextOrderNumber() => ++lastOrderNumber;
   String nextSessionId() => 'mock-session-${++lastSessionNumber}';
+  int nextCategoryId() => ++_categorySeq;
+  int nextProductId() => ++_productSeq;
 
   CafeTable tableById(int id) {
     for (final t in tables) {
@@ -374,7 +388,7 @@ class MockDatabase {
       10: 'تیرامیسوی ایتالیایی با قهوه و کاکائو',
     };
     final products = <Product>[
-      for (final c in _catalog)
+      for (final c in catalog)
         Product(
           id: c.$1,
           name: c.$2,

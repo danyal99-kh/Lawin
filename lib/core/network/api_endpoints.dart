@@ -20,10 +20,14 @@ abstract final class ApiEndpoints {
 
   // Tables
   static const String tables = '$_v1/tables/';
+  static String tableReserve(int id) => '$_v1/tables/$id/reserve/';
+  static const String tableSessions = '$_v1/tables/sessions/';
 
   // Catalog
   static const String products = '$_v1/products/';
+  static String product(int id) => '$_v1/products/$id/';
   static const String categories = '$_v1/categories/';
+  static String category(int id) => '$_v1/categories/$id/';
 
   // Inventory
   static const String inventoryItems = '$_v1/inventory/items/';

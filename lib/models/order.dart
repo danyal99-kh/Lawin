@@ -48,6 +48,7 @@ class Order {
     required this.paymentStatus,
     required this.items,
     required this.createdAt,
+    required this.sessionId,
     this.tableId,
     this.tableNumber,
     this.paymentMethod,
@@ -69,6 +70,9 @@ class Order {
   final List<OrderItem> items;
   final DateTime createdAt;
   final DateTime? paidAt;
+
+  /// نشست میزی که این سفارش به آن تعلق دارد.
+  final String sessionId;
 
   /// زمان چاپ سفارش بار؛ برای جلوگیری از چاپ تکراری.
   final DateTime? barPrintedAt;
@@ -109,6 +113,7 @@ class Order {
       barPrintedAt:
           printedAt == null ? null : DateTime.parse(printedAt).toLocal(),
       version: json['version'] as int? ?? 1,
+      sessionId: json['session_id'] as String? ?? '',
     );
   }
 
@@ -116,9 +121,8 @@ class Order {
         'id': id,
         'number': number,
         'source': source.apiValue,
-        'table': tableNumber == null
-            ? null
-            : {'id': tableId, 'number': tableNumber},
+        'table':
+            tableNumber == null ? null : {'id': tableId, 'number': tableNumber},
         'status': status.apiValue,
         'payment_status': paymentStatus.apiValue,
         'payment_method': paymentMethod?.apiValue,
@@ -129,5 +133,47 @@ class Order {
         'paid_at': paidAt?.toUtc().toIso8601String(),
         'bar_printed_at': barPrintedAt?.toUtc().toIso8601String(),
         'version': version,
+        'session_id': sessionId,
       };
+
+  Order copyWith({
+    String? id,
+    int? number,
+    OrderSource? source,
+    int? tableId,
+    int? tableNumber,
+    OrderStatus? status,
+    PaymentStatus? paymentStatus,
+    PaymentMethod? paymentMethod,
+    String? customerNote,
+    List<OrderItem>? items,
+    DateTime? createdAt,
+    DateTime? paidAt,
+    DateTime? barPrintedAt,
+    int? version,
+    String? sessionId,
+    bool clearPaymentMethod = false,
+    bool clearPaidAt = false,
+    bool clearBarPrintedAt = false,
+  }) {
+    return Order(
+      id: id ?? this.id,
+      number: number ?? this.number,
+      source: source ?? this.source,
+      tableId: tableId ?? this.tableId,
+      tableNumber: tableNumber ?? this.tableNumber,
+      status: status ?? this.status,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentMethod:
+          clearPaymentMethod ? null : (paymentMethod ?? this.paymentMethod),
+      customerNote: customerNote ?? this.customerNote,
+      items: items ?? this.items,
+      createdAt: createdAt ?? this.createdAt,
+      paidAt: clearPaidAt ? null : (paidAt ?? this.paidAt),
+      barPrintedAt:
+          clearBarPrintedAt ? null : (barPrintedAt ?? this.barPrintedAt),
+      version: version ?? this.version,
+      sessionId: sessionId ?? this.sessionId,
+    );
+  }
 }

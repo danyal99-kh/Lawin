@@ -1,9 +1,13 @@
-import 'package:cafe_book_admin/providers/navigation_provider.dart';
-import 'package:cafe_book_admin/responsive/breakpoints.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/navigation_provider.dart';
+import '../../responsive/breakpoints.dart';
+import '../categories/categories_page.dart';
 import '../dashboard/dashboard_page.dart';
+import '../products/products_page.dart';
+import '../tables/tables_page.dart';
+import '../tables/tables_page.dart';
 import 'app_destination.dart';
 import 'app_drawer.dart';
 import 'app_sidebar.dart';
@@ -49,6 +53,12 @@ class AppShell extends StatelessWidget {
 
   static Widget _pageFor(AppDestination d) => switch (d) {
         AppDestination.dashboard => const DashboardPage(),
+        AppDestination.tables => const TablesPage(),
+        AppDestination.products => const ProductsPage(),
+        AppDestination.categories => const CategoriesPage(),
+        AppDestination.tables => const TablesPage(),
+        AppDestination.products => const ProductsPage(),
+        AppDestination.categories => const CategoriesPage(),
         _ => PlaceholderPage(destination: d),
       };
 }

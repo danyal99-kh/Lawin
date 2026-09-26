@@ -16,9 +16,6 @@ class CafeTable {
   CafeTable copyWith({TableStatus? status}) =>
       CafeTable(id: id, number: number, status: status ?? this.status);
 
-  CafeTable copyWith({TableStatus? status}) =>
-      CafeTable(id: id, number: number, status: status ?? this.status);
-
   factory CafeTable.fromJson(Map<String, dynamic> json) => CafeTable(
         id: json['id'] as int,
         number: json['number'] as int,
