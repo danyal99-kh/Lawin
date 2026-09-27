@@ -32,7 +32,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openForm([ProductCategory? category]) async {

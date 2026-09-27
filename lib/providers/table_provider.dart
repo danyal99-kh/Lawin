@@ -5,6 +5,7 @@ import '../core/errors/app_failure.dart';
 import '../core/utils/view_state.dart';
 import '../models/enums.dart';
 import '../models/table_overview.dart';
+import '../repositories/payment_repository.dart';
 import '../repositories/table_repository.dart';
 
 enum TableFilter {
@@ -25,9 +26,11 @@ enum TableFilter {
 }
 
 class TableProvider extends ChangeNotifier {
-  TableProvider(this._repository, {MockTableRepository? devTools});
+  TableProvider(this._repository, this._paymentRepository,
+      {MockTableRepository? devTools});
 
   final TableRepository _repository;
+  final PaymentRepository _paymentRepository;
 
   ViewState<List<TableOverview>> _state = const ViewState.initial();
   ViewState<List<TableOverview>> get state => _state;
@@ -36,8 +39,6 @@ class TableProvider extends ChangeNotifier {
   TableFilter get filter => _filter;
 
   bool _busy = false;
-
-  /// در حال اجرای یک عملیات (مثل رزرو) هستیم.
   bool get busy => _busy;
 
   bool _disposed = false;
@@ -77,17 +78,35 @@ class TableProvider extends ChangeNotifier {
     final result = await _repository.setReserved(tableId, reserved: reserved);
     AppFailure? failure;
     result.when<void>(
-      success: (updated) {
-        _state = ViewState<List<TableOverview>>.success([
-          for (final o in _all)
-            if (o.table.id == updated.table.id) updated else o,
-        ]);
-      },
+      success: (updated) => _replace(updated),
       failure: (f) => failure = f,
     );
     _busy = false;
     _notify();
     return failure;
+  }
+
+  /// ثبت پرداخت صورتحساب میز؛ نشست را می‌بندد و میز را آزاد می‌کند.
+  /// در صورت موفقیت null، در غیر این صورت خطای قابل‌نمایش برمی‌گردد.
+  Future<AppFailure?> pay(int tableId, PaymentMethod method) async {
+    _busy = true;
+    _notify();
+    final result = await _paymentRepository.pay(tableId, method: method);
+    AppFailure? failure;
+    result.when<void>(
+      success: (updated) => _replace(updated),
+      failure: (f) => failure = f,
+    );
+    _busy = false;
+    _notify();
+    return failure;
+  }
+
+  void _replace(TableOverview updated) {
+    _state = ViewState<List<TableOverview>>.success([
+      for (final o in _all)
+        if (o.table.id == updated.table.id) updated else o,
+    ]);
   }
 
   @override

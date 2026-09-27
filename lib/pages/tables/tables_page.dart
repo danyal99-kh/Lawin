@@ -1,3 +1,4 @@
+import 'package:cafe_book_admin/pages/tables/widgets/payment_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -36,9 +37,36 @@ class _TablesPageState extends State<TablesPage> {
   Future<void> _openDetail(TableOverview overview) async {
     final messenger = ScaffoldMessenger.of(context);
     final provider = context.read<TableProvider>();
-    final willReserve = overview.status != TableStatus.reserved;
     final number = PersianFormat.digits(overview.table.number);
 
+    if (overview.status == TableStatus.active && overview.hasOpenOrders) {
+      final action = await showAdaptiveSheet<String>(
+        context: context,
+        builder: (ctx) => TableDetail(
+          overview: overview,
+          onToggleReserved: () {},
+          onPay: () => Navigator.of(ctx).pop('pay'),
+        ),
+      );
+      if (action != 'pay' || !mounted) return;
+      final paid = await showDialog<bool>(
+        context: context,
+        builder: (_) => PaymentDialog(
+          tableId: overview.table.id,
+          amount: overview.currentAmount,
+        ),
+      );
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(
+          content: Text(paid == true
+              ? 'صورتحساب میز $number با موفقیت پرداخت شد.'
+              : 'پرداخت انجام نشد.'),
+        ));
+      }
+      return;
+    }
+
+    final willReserve = overview.status != TableStatus.reserved;
     final confirmed = await showAdaptiveSheet<bool>(
       context: context,
       builder: (ctx) => TableDetail(

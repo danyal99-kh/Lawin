@@ -18,10 +18,12 @@ class TableDetail extends StatelessWidget {
     super.key,
     required this.overview,
     required this.onToggleReserved,
+    this.onPay,
   });
 
   final TableOverview overview;
   final VoidCallback onToggleReserved;
+  final VoidCallback? onPay;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,8 @@ class TableDetail extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           if (session != null) ...[
-            Text(isActive ? 'نشست فعلی' : 'آخرین نشست', style: theme.titleSmall),
+            Text(isActive ? 'نشست فعلی' : 'آخرین نشست',
+                style: theme.titleSmall),
             const SizedBox(height: AppSpacing.xs),
             InfoRow(
                 icon: Icons.login,
@@ -75,7 +78,8 @@ class TableDetail extends StatelessWidget {
               InfoRow(
                 icon: Icons.timer_outlined,
                 label: 'مدت حضور',
-                value: PersianFormat.duration(session.durationAt(DateTime.now())),
+                value:
+                    PersianFormat.duration(session.durationAt(DateTime.now())),
               ),
           ] else
             Text('هنوز نشستی برای این میز ثبت نشده', style: theme.bodySmall),

@@ -1,3 +1,4 @@
+import 'package:cafe_book_admin/providers/dashboard_provider.dart';
 import 'package:cafe_book_admin/providers/inventory_provider.dart';
 import 'package:cafe_book_admin/providers/order_provider.dart';
 import 'package:cafe_book_admin/providers/purchase_provider.dart';
@@ -6,10 +7,12 @@ import 'package:cafe_book_admin/providers/waste_provider.dart';
 import 'package:cafe_book_admin/repositories/inventory_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_inventory_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_order_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_payment_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_waste_repository.dart';
 import 'package:cafe_book_admin/repositories/order_repository.dart';
+import 'package:cafe_book_admin/repositories/payment_repository.dart';
 import 'package:cafe_book_admin/repositories/purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/waste_repository.dart';
@@ -30,7 +33,6 @@ import '../services/image_picker_service.dart';
 import '../repositories/table_repository.dart';
 
 import 'category_provider.dart';
-import 'dashboard_provider.dart';
 import 'navigation_provider.dart';
 import 'product_provider.dart';
 import 'table_provider.dart';
@@ -52,6 +54,11 @@ class AppProviders extends StatelessWidget {
         Provider<DashboardRepository>(
           create: (ctx) => MockDashboardRepository(ctx.read<MockDatabase>()),
         ),
+        ChangeNotifierProvider(
+          lazy: false,
+          create: (ctx) =>
+              DashboardProvider(ctx.read<DashboardRepository>())..load(),
+        ),
         Provider<MockTableRepository>(
           create: (ctx) => MockTableRepository(ctx.read<MockDatabase>()),
         ),
@@ -72,13 +79,17 @@ class AppProviders extends StatelessWidget {
         ChangeNotifierProvider(
           create: (ctx) => ProductProvider(ctx.read<ProductRepository>()),
         ),
-        ChangeNotifierProvider(
-          create: (ctx) => TableProvider(ctx.read<TableRepository>()),
+        Provider<PaymentRepository>(
+          create: (ctx) => MockPaymentRepository(
+            ctx.read<MockDatabase>(),
+            ctx.read<MockTableRepository>(),
+          ),
         ),
         ChangeNotifierProvider(
-          lazy: false,
-          create: (ctx) =>
-              DashboardProvider(ctx.read<DashboardRepository>())..load(),
+          create: (ctx) => TableProvider(
+            ctx.read<TableRepository>(),
+            ctx.read<PaymentRepository>(),
+          ),
         ),
         ChangeNotifierProvider(
           lazy: false,
@@ -86,7 +97,7 @@ class AppProviders extends StatelessWidget {
             final repo = ctx.read<MockTableRepository>();
             return TableProvider(
               repo,
-              // ابزار شبیه‌سازی فقط در Debug + Mock
+              ctx.read<PaymentRepository>(),
               devTools: (kDebugMode && AppConfig.useMock) ? repo : null,
             )..load();
           },
