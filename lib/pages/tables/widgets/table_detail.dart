@@ -99,6 +99,14 @@ class TableDetail extends StatelessWidget {
                           ?.copyWith(color: AppColors.primary)),
                 ],
               ),
+              if (onPay != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                FilledButton.icon(
+                  onPressed: onPay,
+                  icon: const Icon(Icons.payments_outlined),
+                  label: const Text('ثبت پرداخت'),
+                ),
+              ],
             ],
           ],
           if (!isActive) ...[

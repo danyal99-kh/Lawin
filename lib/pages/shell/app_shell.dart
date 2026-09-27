@@ -1,4 +1,8 @@
+import 'package:cafe_book_admin/pages/inventory/inventory_page.dart';
 import 'package:cafe_book_admin/pages/orders/orders_page.dart';
+import 'package:cafe_book_admin/pages/purchases/purchases_page.dart';
+import 'package:cafe_book_admin/pages/recipes/recipes_page.dart';
+import 'package:cafe_book_admin/pages/waste/waste_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -57,6 +61,10 @@ class AppShell extends StatelessWidget {
         AppDestination.orders => const OrdersPage(),
         AppDestination.products => const ProductsPage(),
         AppDestination.categories => const CategoriesPage(),
+        AppDestination.inventory => const InventoryPage(), // اضافه شد
+        AppDestination.recipes => const RecipesPage(), // اضافه شد
+        AppDestination.purchases => const PurchasesPage(), // اضافه شد
+        AppDestination.waste => const WastePage(), // اضافه شد
         _ => PlaceholderPage(destination: d),
       };
 }
