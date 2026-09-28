@@ -1,7 +1,11 @@
+import 'package:cafe_book_admin/pages/accounting/accounting_page.dart';
+import 'package:cafe_book_admin/pages/expenses/expenses_page.dart';
 import 'package:cafe_book_admin/pages/inventory/inventory_page.dart';
 import 'package:cafe_book_admin/pages/orders/orders_page.dart';
 import 'package:cafe_book_admin/pages/purchases/purchases_page.dart';
 import 'package:cafe_book_admin/pages/recipes/recipes_page.dart';
+import 'package:cafe_book_admin/pages/reports/reports_page.dart';
+import 'package:cafe_book_admin/pages/settings/settings_page.dart';
 import 'package:cafe_book_admin/pages/waste/waste_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -61,10 +65,14 @@ class AppShell extends StatelessWidget {
         AppDestination.orders => const OrdersPage(),
         AppDestination.products => const ProductsPage(),
         AppDestination.categories => const CategoriesPage(),
-        AppDestination.inventory => const InventoryPage(), // اضافه شد
-        AppDestination.recipes => const RecipesPage(), // اضافه شد
-        AppDestination.purchases => const PurchasesPage(), // اضافه شد
-        AppDestination.waste => const WastePage(), // اضافه شد
+        AppDestination.inventory => const InventoryPage(),
+        AppDestination.recipes => const RecipesPage(),
+        AppDestination.purchases => const PurchasesPage(),
+        AppDestination.waste => const WastePage(),
+        AppDestination.settings => const SettingsPage(),
+        AppDestination.accounting => const AccountingPage(),
+        AppDestination.expenses => const ExpensesPage(),
+        AppDestination.reports => const ReportsPage(),
         _ => PlaceholderPage(destination: d),
       };
 }

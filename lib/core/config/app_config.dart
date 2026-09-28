@@ -9,8 +9,8 @@
 /// (مثلاً flutter_secure_storage) مدیریت می‌شود، نه از طریق این فایل.
 abstract final class AppConfig {
   /// آدرس پایه‌ی API جنگو. تا زمانی که Backend آماده نیست خالی است.
-  static const String apiBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL',
+      defaultValue: 'http://127.0.0.1:8000');
 
   /// اگر true باشد Repositoryها از Mock Data استفاده می‌کنند.
   static const bool useMock =

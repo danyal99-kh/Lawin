@@ -1,20 +1,32 @@
+import 'package:cafe_book_admin/providers/accounting_provider.dart';
 import 'package:cafe_book_admin/providers/dashboard_provider.dart';
+import 'package:cafe_book_admin/providers/expense_provider.dart';
 import 'package:cafe_book_admin/providers/inventory_provider.dart';
 import 'package:cafe_book_admin/providers/order_provider.dart';
 import 'package:cafe_book_admin/providers/purchase_provider.dart';
 import 'package:cafe_book_admin/providers/recipe_provider.dart';
+import 'package:cafe_book_admin/providers/report_provider.dart';
+import 'package:cafe_book_admin/providers/settings_provider.dart';
 import 'package:cafe_book_admin/providers/waste_provider.dart';
+import 'package:cafe_book_admin/repositories/accounting_repository.dart';
+import 'package:cafe_book_admin/repositories/expense_repository.dart';
 import 'package:cafe_book_admin/repositories/inventory_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_accounting_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_expense_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_inventory_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_order_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_payment_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_recipe_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_report_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_settings_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_waste_repository.dart';
 import 'package:cafe_book_admin/repositories/order_repository.dart';
 import 'package:cafe_book_admin/repositories/payment_repository.dart';
 import 'package:cafe_book_admin/repositories/purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/recipe_repository.dart';
+import 'package:cafe_book_admin/repositories/report_repository.dart';
+import 'package:cafe_book_admin/repositories/settings_repository.dart.dart';
 import 'package:cafe_book_admin/repositories/waste_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -132,6 +144,30 @@ class AppProviders extends StatelessWidget {
         ChangeNotifierProvider(
           lazy: false,
           create: (ctx) => OrderProvider(ctx.read<OrderRepository>())..load(),
+        ),
+        Provider<SettingsRepository>(
+          create: (_) => MockSettingsRepository(),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => SettingsProvider(ctx.read<SettingsRepository>()),
+        ),
+        Provider<ExpenseRepository>(
+          create: (ctx) => MockExpenseRepository(ctx.read<MockDatabase>()),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => ExpenseProvider(ctx.read<ExpenseRepository>()),
+        ),
+        Provider<AccountingRepository>(
+          create: (ctx) => MockAccountingRepository(ctx.read<MockDatabase>()),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => AccountingProvider(ctx.read<AccountingRepository>()),
+        ),
+        Provider<ReportRepository>(
+          create: (ctx) => MockReportRepository(ctx.read<MockDatabase>()),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => ReportProvider(ctx.read<ReportRepository>()),
         ),
       ],
       child: child,

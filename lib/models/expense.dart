@@ -1,3 +1,4 @@
+// lib/models/expense.dart
 import 'api_enum.dart';
 import 'enums.dart';
 
@@ -36,4 +37,33 @@ class Expense {
         'date': date.toUtc().toIso8601String(),
         'note': note,
       };
+}
+
+/// داده‌ی فرم ثبت/ویرایش هزینه.
+class ExpenseDraft {
+  const ExpenseDraft({
+    required this.title,
+    required this.amount,
+    required this.category,
+    this.note,
+  });
+
+  final String title;
+  final int amount;
+  final ExpenseCategory category;
+  final String? note;
+
+  ExpenseDraft normalized() {
+    String? clean(String? s) {
+      final t = s?.trim();
+      return (t == null || t.isEmpty) ? null : t;
+    }
+
+    return ExpenseDraft(
+      title: title.trim(),
+      amount: amount < 0 ? 0 : amount,
+      category: category,
+      note: clean(note),
+    );
+  }
 }
