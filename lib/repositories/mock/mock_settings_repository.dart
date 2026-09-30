@@ -1,4 +1,4 @@
-import 'package:cafe_book_admin/repositories/settings_repository.dart.dart';
+import 'package:cafe_book_admin/repositories/settings_repository.dart';
 
 import '../../core/errors/app_failure.dart';
 import '../../core/errors/result.dart';

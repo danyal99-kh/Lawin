@@ -10,6 +10,7 @@ import 'package:cafe_book_admin/providers/order_provider.dart';
 import 'package:cafe_book_admin/providers/purchase_provider.dart';
 import 'package:cafe_book_admin/providers/recipe_provider.dart';
 import 'package:cafe_book_admin/providers/report_provider.dart';
+import 'package:cafe_book_admin/providers/settings_provider.dart';
 import 'package:cafe_book_admin/providers/waste_provider.dart';
 import 'package:cafe_book_admin/repositories/accounting_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_category_repository.dart';
@@ -33,12 +34,14 @@ import 'package:cafe_book_admin/repositories/mock/mock_payment_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_report_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_settings_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_waste_repository.dart';
 import 'package:cafe_book_admin/repositories/order_repository.dart';
 import 'package:cafe_book_admin/repositories/payment_repository.dart';
 import 'package:cafe_book_admin/repositories/purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/report_repository.dart';
+import 'package:cafe_book_admin/repositories/settings_repository.dart';
 import 'package:cafe_book_admin/repositories/waste_repository.dart';
 import 'package:cafe_book_admin/services/realtime_service.dart';
 import 'package:flutter/widgets.dart';
@@ -222,11 +225,9 @@ class AppProviders extends StatelessWidget {
                 : ApiOrderRepository(ctx.read<ApiClient>()),
           ),
         ), // ---------- Accounting ----------
+        // ---------- Accounting (تا مرحله ۶ Mock) ----------
         Provider<AccountingRepository>(
           create: (ctx) => MockAccountingRepository(ctx.read<MockDatabase>()),
-        ),
-        ChangeNotifierProvider(
-          create: (ctx) => AccountingProvider(ctx.read<AccountingRepository>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => AccountingProvider(ctx.read<AccountingRepository>()),
@@ -236,6 +237,12 @@ class AppProviders extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (ctx) => ReportProvider(ctx.read<ReportRepository>()),
+        ), // ---------- Settings ----------
+        Provider<SettingsRepository>(
+          create: (_) => MockSettingsRepository(),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => SettingsProvider(ctx.read<SettingsRepository>()),
         ),
       ],
       child: child,

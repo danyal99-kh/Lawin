@@ -53,6 +53,10 @@ class ApiClient {
       return Failure(AppFailure.timeout());
     } on SocketException {
       return Failure(AppFailure.network());
+    } on http.ClientException {
+      return Failure(AppFailure.network());
+    } on HandshakeException {
+      return Failure(AppFailure.network());
     } catch (e) {
       return Failure(AppFailure.unknown(e));
     }
@@ -75,11 +79,11 @@ class ApiClient {
       case 'not_found':
         return AppFailure.notFound();
       case 'unauthorized':
-        return AppFailure.unauthorized();
+        return AppFailure.unauthorized(message);
       case 'validation':
         return AppFailure.validation(message);
     }
-    if (status == 401 || status == 403) return AppFailure.unauthorized();
+    if (status == 401 || status == 403) return AppFailure.unauthorized(message);
     if (status == 404) return AppFailure.notFound();
     if (status >= 500) return AppFailure.server(body);
     return AppFailure.validation(message);

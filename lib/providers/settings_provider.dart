@@ -1,4 +1,4 @@
-import 'package:cafe_book_admin/repositories/settings_repository.dart.dart';
+import 'package:cafe_book_admin/repositories/settings_repository.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/errors/app_failure.dart';

@@ -29,8 +29,8 @@ class AppFailure implements Exception {
   factory AppFailure.timeout() => const AppFailure(FailureType.timeout);
   factory AppFailure.server([Object? details]) =>
       AppFailure(FailureType.server, details: details);
-  factory AppFailure.unauthorized() =>
-      const AppFailure(FailureType.unauthorized);
+  factory AppFailure.unauthorized([String? message]) =>
+      AppFailure(FailureType.unauthorized, message: message);
   factory AppFailure.validation([String? message]) =>
       AppFailure(FailureType.validation, message: message);
   factory AppFailure.insufficientStock([String? itemName]) => AppFailure(

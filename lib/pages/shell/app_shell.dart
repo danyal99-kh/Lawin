@@ -65,6 +65,8 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  RealtimeSync? _sync;
+
   @override
   void initState() {
     super.initState();
@@ -74,9 +76,15 @@ class _AppShellState extends State<AppShell> {
       context.read<TableProvider>().load();
       context.read<OrderProvider>().load();
       if (!AppConfig.useMock) {
-        context.read<RealtimeSync>().start();
+        _sync = context.read<RealtimeSync>()..start();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _sync?.stop(); // AppShell با logout از درخت حذف می‌شود
+    super.dispose();
   }
 
   @override

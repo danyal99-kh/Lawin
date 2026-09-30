@@ -46,14 +46,31 @@ class RealtimeSync extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _started = false;
+
   Future<void> start() async {
+    if (_started) return; // جلوگیری از Subscribe دوباره
+    _started = true;
     _evSub = service.events.listen(_onEvent);
     _connSub = service.connection.listen((ok) {
       _connected = ok;
       notifyListeners();
-      if (ok) _resync(); // بعد از هر اتصال، از دست‌رفته‌ها را جبران کن
+      if (ok) _resync();
     });
     await service.start();
+  }
+
+  /// هنگام خروج از حساب: قطع WebSocket و لغو Subscribeها.
+  Future<void> stop() async {
+    _started = false;
+    _debounce?.cancel();
+    await _evSub?.cancel();
+    await _connSub?.cancel();
+    _evSub = null;
+    _connSub = null;
+    _connected = false;
+    _cursor = null;
+    await service.stop();
   }
 
   void _onEvent(RealtimeEvent e) {
