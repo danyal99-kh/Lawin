@@ -1,4 +1,3 @@
-// lib/pages/expenses/widgets/expenses_table.dart
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -87,7 +86,7 @@ class ExpensesTable extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.titleSmall
-                              ?.copyWith(color: AppColors.danger)),
+                              ?.copyWith(color: AppColors.wood)),
                     ),
                     Expanded(
                       flex: 2,

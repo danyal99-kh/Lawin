@@ -1,14 +1,28 @@
+import 'package:cafe_book_admin/core/network/api_client.dart';
+import 'package:cafe_book_admin/core/network/token_storage.dart';
 import 'package:cafe_book_admin/providers/accounting_provider.dart';
+import 'package:cafe_book_admin/providers/auth_provider.dart';
 import 'package:cafe_book_admin/providers/dashboard_provider.dart';
 import 'package:cafe_book_admin/providers/expense_provider.dart';
+import 'package:cafe_book_admin/providers/incoming_orders_provider.dart';
 import 'package:cafe_book_admin/providers/inventory_provider.dart';
 import 'package:cafe_book_admin/providers/order_provider.dart';
 import 'package:cafe_book_admin/providers/purchase_provider.dart';
 import 'package:cafe_book_admin/providers/recipe_provider.dart';
 import 'package:cafe_book_admin/providers/report_provider.dart';
-import 'package:cafe_book_admin/providers/settings_provider.dart';
 import 'package:cafe_book_admin/providers/waste_provider.dart';
 import 'package:cafe_book_admin/repositories/accounting_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_category_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_dashboard_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_expense_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_inventory_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_order_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_payment_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_product_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_purchase_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_recipe_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_table_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_waste_repository.dart';
 import 'package:cafe_book_admin/repositories/expense_repository.dart';
 import 'package:cafe_book_admin/repositories/inventory_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_accounting_repository.dart';
@@ -19,16 +33,14 @@ import 'package:cafe_book_admin/repositories/mock/mock_payment_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_report_repository.dart';
-import 'package:cafe_book_admin/repositories/mock/mock_settings_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_waste_repository.dart';
 import 'package:cafe_book_admin/repositories/order_repository.dart';
 import 'package:cafe_book_admin/repositories/payment_repository.dart';
 import 'package:cafe_book_admin/repositories/purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/report_repository.dart';
-import 'package:cafe_book_admin/repositories/settings_repository.dart.dart';
 import 'package:cafe_book_admin/repositories/waste_repository.dart';
-import 'package:flutter/foundation.dart';
+import 'package:cafe_book_admin/services/realtime_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
@@ -51,8 +63,12 @@ import 'table_provider.dart';
 
 /// نقطه‌ی تزریق وابستگی‌ها.
 ///
-/// مرحله ۱۲ (اتصال به Django): اینجا بر اساس `AppConfig.useMock` به‌جای
-/// Mock*Repository از Api*Repository استفاده می‌شود؛ هیچ Provider یا صفحه‌ای تغییر نمی‌کند.
+/// همه‌جا بر اساس `AppConfig.useMock` بین Mock*Repository و Api*Repository
+/// سوییچ می‌کنیم؛ هیچ Provider یا صفحه‌ای به این انتخاب وابسته نیست.
+///
+/// نکته‌ی مهم: Providerهایی که به توکن ورود نیاز دارند (Dashboard, Table,
+/// Order, ...) اینجا load() نمی‌شوند؛ بارگذاری اولیه‌شان بعد از موفقیت
+/// ورود (AuthGate) در initState پوسته‌ی اصلی برنامه انجام می‌شود.
 class AppProviders extends StatelessWidget {
   const AppProviders({super.key, required this.child});
 
@@ -62,40 +78,46 @@ class AppProviders extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<MockDatabase>(create: (_) => MockDatabase.seeded()),
-        Provider<DashboardRepository>(
-          create: (ctx) => MockDashboardRepository(ctx.read<MockDatabase>()),
+        // ---------- زیرساخت شبکه و احراز هویت ----------
+        Provider<TokenStorage>(create: (_) => PrefsTokenStorage()),
+        Provider<ApiClient>(
+          create: (ctx) => ApiClient(ctx.read<TokenStorage>()),
         ),
         ChangeNotifierProvider(
-          lazy: false,
           create: (ctx) =>
-              DashboardProvider(ctx.read<DashboardRepository>())..load(),
+              AuthProvider(ctx.read<ApiClient>(), ctx.read<TokenStorage>())
+                ..restore(),
         ),
-        Provider<MockTableRepository>(
-          create: (ctx) => MockTableRepository(ctx.read<MockDatabase>()),
-        ),
-        Provider<TableRepository>(
-          create: (ctx) => MockTableRepository(ctx.read<MockDatabase>()),
-        ),
-        Provider<CategoryRepository>(
-          create: (ctx) => MockCategoryRepository(ctx.read<MockDatabase>()),
-        ),
-        Provider<ProductRepository>(
-          create: (ctx) => MockProductRepository(ctx.read<MockDatabase>()),
-        ),
-        Provider<ImagePickerService>(create: (_) => FilePickerImageService()),
+
+        // ---------- داده‌ی Mock (فقط وقتی USE_MOCK=true واقعاً استفاده می‌شود) ----------
+        Provider<MockDatabase>(create: (_) => MockDatabase.seeded()),
+
+        // ---------- ناوبری ----------
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
-        ChangeNotifierProvider(
-          create: (ctx) => CategoryProvider(ctx.read<CategoryRepository>()),
+
+        // ---------- Dashboard ----------
+        Provider<DashboardRepository>(
+          create: (ctx) => AppConfig.useMock
+              ? MockDashboardRepository(ctx.read<MockDatabase>())
+              : ApiDashboardRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
-          create: (ctx) => ProductProvider(ctx.read<ProductRepository>()),
+          create: (ctx) => DashboardProvider(ctx.read<DashboardRepository>()),
+        ),
+
+        // ---------- Tables ----------
+        Provider<TableRepository>(
+          create: (ctx) => AppConfig.useMock
+              ? MockTableRepository(ctx.read<MockDatabase>())
+              : ApiTableRepository(ctx.read<ApiClient>()),
         ),
         Provider<PaymentRepository>(
-          create: (ctx) => MockPaymentRepository(
-            ctx.read<MockDatabase>(),
-            ctx.read<MockTableRepository>(),
-          ),
+          create: (ctx) => AppConfig.useMock
+              ? MockPaymentRepository(
+                  ctx.read<MockDatabase>(),
+                  MockTableRepository(ctx.read<MockDatabase>()),
+                )
+              : ApiPaymentRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => TableProvider(
@@ -103,66 +125,112 @@ class AppProviders extends StatelessWidget {
             ctx.read<PaymentRepository>(),
           ),
         ),
-        ChangeNotifierProvider(
-          lazy: false,
-          create: (ctx) {
-            final repo = ctx.read<MockTableRepository>();
-            return TableProvider(
-              repo,
-              ctx.read<PaymentRepository>(),
-              devTools: (kDebugMode && AppConfig.useMock) ? repo : null,
-            )..load();
-          },
+
+        // ---------- Categories ----------
+        Provider<CategoryRepository>(
+          create: (ctx) => AppConfig.useMock
+              ? MockCategoryRepository(ctx.read<MockDatabase>())
+              : ApiCategoryRepository(ctx.read<ApiClient>()),
         ),
+        ChangeNotifierProvider(
+          create: (ctx) => CategoryProvider(ctx.read<CategoryRepository>()),
+        ),
+
+        // ---------- Products ----------
+        Provider<ProductRepository>(
+          create: (ctx) => AppConfig.useMock
+              ? MockProductRepository(ctx.read<MockDatabase>())
+              : ApiProductRepository(ctx.read<ApiClient>()),
+        ),
+        Provider<ImagePickerService>(create: (_) => FilePickerImageService()),
+        ChangeNotifierProvider(
+          create: (ctx) => ProductProvider(ctx.read<ProductRepository>()),
+        ),
+
+        // ---------- Inventory ----------
         Provider<InventoryRepository>(
-          create: (ctx) => MockInventoryRepository(ctx.read<MockDatabase>()),
+          create: (ctx) => AppConfig.useMock
+              ? MockInventoryRepository(ctx.read<MockDatabase>())
+              : ApiInventoryRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => InventoryProvider(ctx.read<InventoryRepository>()),
         ),
+
+        // ---------- Purchases ----------
         Provider<PurchaseRepository>(
-          create: (ctx) => MockPurchaseRepository(ctx.read<MockDatabase>()),
+          create: (ctx) => AppConfig.useMock
+              ? MockPurchaseRepository(ctx.read<MockDatabase>())
+              : ApiPurchaseRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => PurchaseProvider(ctx.read<PurchaseRepository>()),
         ),
+
+        // ---------- Wastes ----------
         Provider<WasteRepository>(
-          create: (ctx) => MockWasteRepository(ctx.read<MockDatabase>()),
+          create: (ctx) => AppConfig.useMock
+              ? MockWasteRepository(ctx.read<MockDatabase>())
+              : ApiWasteRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => WasteProvider(ctx.read<WasteRepository>()),
         ),
+
+        // ---------- Recipes ----------
         Provider<RecipeRepository>(
-          create: (ctx) => MockRecipeRepository(ctx.read<MockDatabase>()),
+          create: (ctx) => AppConfig.useMock
+              ? MockRecipeRepository(ctx.read<MockDatabase>())
+              : ApiRecipeRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => RecipeProvider(ctx.read<RecipeRepository>()),
         ),
+
+        // ---------- Orders ----------
         Provider<OrderRepository>(
-          create: (ctx) => MockOrderRepository(ctx.read<MockDatabase>()),
+          create: (ctx) => AppConfig.useMock
+              ? MockOrderRepository(ctx.read<MockDatabase>())
+              : ApiOrderRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
-          lazy: false,
-          create: (ctx) => OrderProvider(ctx.read<OrderRepository>())..load(),
+          create: (ctx) => OrderProvider(ctx.read<OrderRepository>()),
         ),
-        Provider<SettingsRepository>(
-          create: (_) => MockSettingsRepository(),
-        ),
-        ChangeNotifierProvider(
-          create: (ctx) => SettingsProvider(ctx.read<SettingsRepository>()),
-        ),
+
+        // ---------- Expenses ----------
         Provider<ExpenseRepository>(
-          create: (ctx) => MockExpenseRepository(ctx.read<MockDatabase>()),
+          create: (ctx) => AppConfig.useMock
+              ? MockExpenseRepository(ctx.read<MockDatabase>())
+              : ApiExpenseRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => ExpenseProvider(ctx.read<ExpenseRepository>()),
+        ), // ---------- Realtime (WebSocket) ----------
+        Provider<RealtimeService>(
+          create: (ctx) =>
+              RealtimeService(() => ctx.read<TokenStorage>().read()),
+          dispose: (_, s) => s.dispose(),
         ),
+        ChangeNotifierProvider<RealtimeSync>(
+          create: (ctx) => RealtimeSync(
+            service: ctx.read<RealtimeService>(),
+            orders: ctx.read<OrderProvider>(),
+            tables: ctx.read<TableProvider>(),
+            dashboard: ctx.read<DashboardProvider>(),
+            changesRepo: AppConfig.useMock
+                ? null
+                : ApiOrderRepository(ctx.read<ApiClient>()),
+          ),
+        ), // ---------- Accounting ----------
         Provider<AccountingRepository>(
           create: (ctx) => MockAccountingRepository(ctx.read<MockDatabase>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => AccountingProvider(ctx.read<AccountingRepository>()),
         ),
+        ChangeNotifierProvider(
+          create: (ctx) => AccountingProvider(ctx.read<AccountingRepository>()),
+        ), // ---------- Reports ----------
         Provider<ReportRepository>(
           create: (ctx) => MockReportRepository(ctx.read<MockDatabase>()),
         ),

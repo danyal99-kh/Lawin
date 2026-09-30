@@ -1,4 +1,3 @@
-// lib/pages/expenses/widgets/expense_form.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -100,7 +99,7 @@ class _ExpenseFormState extends State<ExpenseForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_isEdit ? 'ویرایش هزینه' : 'هزینه جدید',
+              Text(_isEdit ? 'ویرایش هزینه' : 'هزینه‌ی جدید',
                   style: theme.titleLarge),
               const SizedBox(height: AppSpacing.lg),
               TextFormField(
@@ -135,7 +134,7 @@ class _ExpenseFormState extends State<ExpenseForm> {
                 inputFormatters: [
                   LatinDigitsFormatter(),
                   FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(9),
+                  LengthLimitingTextInputFormatter(12),
                 ],
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(

@@ -2,13 +2,11 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/errors/app_failure.dart';
-import '../core/network/utils/text_utils.dart';
 import '../core/utils/view_state.dart';
 import '../models/enums.dart';
 import '../models/expense.dart';
 import '../repositories/expense_repository.dart';
 
-/// وضعیت صفحه‌ی هزینه‌ها: جستجو + فیلتر دسته‌بندی + ایجاد/ویرایش/حذف.
 class ExpenseProvider extends ChangeNotifier {
   ExpenseProvider(this._repository);
 
@@ -17,43 +15,49 @@ class ExpenseProvider extends ChangeNotifier {
   ViewState<List<Expense>> _state = const ViewState.initial();
   ViewState<List<Expense>> get state => _state;
 
+  /// لیست کامل (بدون فیلتر)
+  List<Expense> get all => _state.data ?? const [];
+
+  /// ---------- وضعیت فیلترها ----------
   String _query = '';
   ExpenseCategory? _category;
 
   String get query => _query;
   ExpenseCategory? get category => _category;
 
-  bool _disposed = false;
-
-  List<Expense> get all => _state.data ?? const [];
-
-  bool get hasFilters => _query.isNotEmpty || _category != null;
-
-  List<Expense> get visible {
-    final q = TextUtils.normalizeFa(_query);
+  /// لیست فیلترشده — در UI از این استفاده کن
+  List<Expense> get expenses {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty && _category == null) return all;
     return all.where((e) {
-      if (_category != null && e.category != _category) return false;
-      return q.isEmpty || TextUtils.normalizeFa(e.title).contains(q);
+      final matchesQuery = q.isEmpty || e.title.toLowerCase().contains(q);
+      final matchesCategory = _category == null || e.category == _category;
+      return matchesQuery && matchesCategory;
     }).toList();
   }
 
-  int get totalAmount => visible.fold(0, (sum, e) => sum + e.amount);
-
-  void setQuery(String q) {
-    _query = q;
+  void setQuery(String value) {
+    if (_query == value) return;
+    _query = value;
     _notify();
   }
 
-  void setCategory(ExpenseCategory? c) {
-    _category = c;
+  void setCategory(ExpenseCategory? value) {
+    if (_category == value) return;
+    _category = value;
     _notify();
   }
 
   void clearFilters() {
+    if (_query.isEmpty && _category == null) return;
     _query = '';
     _category = null;
     _notify();
   }
+
+  // ------------------------------------------------------------
+
+  bool _disposed = false;
 
   Future<void> load() async {
     final previous = _state.data;

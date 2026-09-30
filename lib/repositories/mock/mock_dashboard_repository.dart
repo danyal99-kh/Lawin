@@ -7,7 +7,6 @@ import '../dashboard_repository.dart';
 import 'mock_database.dart';
 
 /// پیاده‌سازی Mock: خلاصه را از MockDatabase محاسبه می‌کند.
-/// بعد از اتصال به Django، همین محاسبه در Backend انجام می‌شود و اینجا حذف می‌شود.
 class MockDashboardRepository implements DashboardRepository {
   MockDashboardRepository(this._db);
 
@@ -16,7 +15,6 @@ class MockDashboardRepository implements DashboardRepository {
   @override
   Future<Result<DashboardSummary>> getSummary() async {
     try {
-      // شبیه‌سازی تأخیر شبکه تا حالت Loading قابل مشاهده باشد.
       await Future<void>.delayed(const Duration(milliseconds: 350));
       return Success(buildSummary(DateTime.now()));
     } catch (e) {
@@ -30,7 +28,6 @@ class MockDashboardRepository implements DashboardRepository {
     final dayEnd = DateRanges.endOfDay(now);
     final monthStart = DateRanges.startOfJalaliMonth(now);
 
-    // درآمد = مجموع سفارش‌های پرداخت‌شده بر اساس زمان پرداخت
     final paid = _db.orders.where((o) => o.status == OrderStatus.paid);
     int sales(DateTime from) => paid
         .where((o) => DateRanges.inRange(o.paidAt ?? o.createdAt, from, dayEnd))

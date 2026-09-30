@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cafe_book_admin/core/utils/persian_format.dart';
 import 'package:cafe_book_admin/pages/accounting/accounting_page.dart';
 import 'package:cafe_book_admin/pages/expenses/expenses_page.dart';
 import 'package:cafe_book_admin/pages/inventory/inventory_page.dart';
@@ -7,9 +10,15 @@ import 'package:cafe_book_admin/pages/recipes/recipes_page.dart';
 import 'package:cafe_book_admin/pages/reports/reports_page.dart';
 import 'package:cafe_book_admin/pages/settings/settings_page.dart';
 import 'package:cafe_book_admin/pages/waste/waste_page.dart';
+import 'package:cafe_book_admin/providers/dashboard_provider.dart';
+import 'package:cafe_book_admin/providers/incoming_orders_provider.dart';
+import 'package:cafe_book_admin/providers/order_provider.dart';
+import 'package:cafe_book_admin/providers/table_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/config/app_config.dart';
 import '../../providers/navigation_provider.dart';
 import '../../responsive/breakpoints.dart';
 import '../categories/categories_page.dart';
@@ -29,35 +38,13 @@ import 'shell_header.dart';
 /// - عرض < ۶۰۰ (موبایل): AppBar + Drawer + Bottom Navigation
 ///
 /// صفحه‌ها Scaffold/AppBar نمی‌سازند؛ فقط محتوا را برمی‌گردانند.
-class AppShell extends StatelessWidget {
+/// بارگذاری اولیه‌ی Providerهایی که به توکن ورود نیاز دارند اینجا،
+/// بعد از رندر اول (AuthGate از قبل عبور کرده)، انجام می‌شود.
+class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final current =
-        context.select<NavigationProvider, AppDestination>((n) => n.current);
-    final width = MediaQuery.sizeOf(context).width;
-    final page = KeyedSubtree(key: ValueKey(current), child: _pageFor(current));
-
-    if (width >= Breakpoints.mobileMax) {
-      return Scaffold(
-        body: Row(
-          children: [
-            AppSidebar(compact: width < Breakpoints.sidebarExpandedMin),
-            Expanded(
-              child: Column(
-                children: [
-                  ShellHeader(title: current.label),
-                  Expanded(child: page),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return _MobileShell(current: current, page: page);
-  }
+  State<AppShell> createState() => _AppShellState();
 
   static Widget _pageFor(AppDestination d) => switch (d) {
         AppDestination.dashboard => const DashboardPage(),
@@ -69,12 +56,57 @@ class AppShell extends StatelessWidget {
         AppDestination.recipes => const RecipesPage(),
         AppDestination.purchases => const PurchasesPage(),
         AppDestination.waste => const WastePage(),
-        AppDestination.settings => const SettingsPage(),
-        AppDestination.accounting => const AccountingPage(),
         AppDestination.expenses => const ExpensesPage(),
+        AppDestination.accounting => const AccountingPage(),
         AppDestination.reports => const ReportsPage(),
+        AppDestination.settings => const SettingsPage(),
         _ => PlaceholderPage(destination: d),
       };
+}
+
+class _AppShellState extends State<AppShell> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<DashboardProvider>().load();
+      context.read<TableProvider>().load();
+      context.read<OrderProvider>().load();
+      if (!AppConfig.useMock) {
+        context.read<RealtimeSync>().start();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current =
+        context.select<NavigationProvider, AppDestination>((n) => n.current);
+    final width = MediaQuery.sizeOf(context).width;
+    final page =
+        KeyedSubtree(key: ValueKey(current), child: AppShell._pageFor(current));
+
+    final body = width >= Breakpoints.mobileMax
+        ? Scaffold(
+            body: Row(
+              children: [
+                AppSidebar(compact: width < Breakpoints.sidebarExpandedMin),
+                Expanded(
+                  child: Column(
+                    children: [
+                      ShellHeader(title: current.label),
+                      Expanded(child: page),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        : _MobileShell(current: current, page: page);
+
+    return AppConfig.useMock ? body : NewOrderListener(child: body);
+  }
 }
 
 class _MobileShell extends StatelessWidget {
@@ -132,4 +164,47 @@ class _MobileShell extends StatelessWidget {
       ),
     );
   }
+}
+
+/// وقتی سفارش جدیدی از مشتری می‌رسد (رویداد order_created با source=customer)،
+/// هشدار صوتی + SnackBar نشان می‌دهد.
+class NewOrderListener extends StatefulWidget {
+  const NewOrderListener({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<NewOrderListener> createState() => _NewOrderListenerState();
+}
+
+class _NewOrderListenerState extends State<NewOrderListener> {
+  StreamSubscription<int>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    final sync = context.read<RealtimeSync>();
+    _sub = sync.newCustomerOrder.listen((number) {
+      if (!mounted) return;
+      SystemSound.play(SystemSoundType.alert);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('سفارش جدید از مشتری: ${PersianFormat.digits(number)}'),
+        action: SnackBarAction(
+          label: 'مشاهده',
+          onPressed: () {
+            context.read<NavigationProvider>().select(AppDestination.orders);
+            sync.markSeen();
+          },
+        ),
+      ));
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

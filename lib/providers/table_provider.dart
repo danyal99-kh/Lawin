@@ -1,4 +1,3 @@
-import 'package:cafe_book_admin/repositories/mock/mock_table_repository.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/errors/app_failure.dart';
@@ -27,7 +26,7 @@ enum TableFilter {
 
 class TableProvider extends ChangeNotifier {
   TableProvider(this._repository, this._paymentRepository,
-      {MockTableRepository? devTools});
+      );
 
   final TableRepository _repository;
   final PaymentRepository _paymentRepository;

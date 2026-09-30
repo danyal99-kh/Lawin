@@ -40,6 +40,8 @@ class Expense {
 }
 
 /// داده‌ی فرم ثبت/ویرایش هزینه.
+/// داده‌ی فرم ایجاد/ویرایش هزینه. زمان ثبت (date) همیشه لحظه‌ی ذخیره است،
+/// مشابه الگوی خرید و ضایعات — کاربر تاریخ را دستی وارد نمی‌کند.
 class ExpenseDraft {
   const ExpenseDraft({
     required this.title,
@@ -54,16 +56,12 @@ class ExpenseDraft {
   final String? note;
 
   ExpenseDraft normalized() {
-    String? clean(String? s) {
-      final t = s?.trim();
-      return (t == null || t.isEmpty) ? null : t;
-    }
-
+    final t = note?.trim();
     return ExpenseDraft(
       title: title.trim(),
       amount: amount < 0 ? 0 : amount,
       category: category,
-      note: clean(note),
+      note: (t == null || t.isEmpty) ? null : t,
     );
   }
 }

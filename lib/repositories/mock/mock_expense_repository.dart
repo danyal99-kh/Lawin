@@ -1,11 +1,11 @@
-// lib/repositories/mock/mock_expense_repository.dart
 import '../../core/errors/app_failure.dart';
 import '../../core/errors/result.dart';
 import '../../models/expense.dart';
 import '../expense_repository.dart';
 import 'mock_database.dart';
 
-/// اعتبارسنجی‌ها همان قوانینی است که بعداً Backend اعمال می‌کند.
+/// روی همان لیست مشترک MockDatabase.expenses کار می‌کند تا داشبورد Mock
+/// (که از همین لیست می‌خواند) با این صفحه هماهنگ بماند.
 class MockExpenseRepository implements ExpenseRepository {
   MockExpenseRepository(this._db);
 
@@ -26,8 +26,8 @@ class MockExpenseRepository implements ExpenseRepository {
     if (d.title.isEmpty) {
       return AppFailure.validation('عنوان هزینه را وارد کنید.');
     }
-    if (d.title.length > 80) {
-      return AppFailure.validation('عنوان هزینه حداکثر ۸۰ حرف باشد.');
+    if (d.title.length > 120) {
+      return AppFailure.validation('عنوان هزینه حداکثر ۱۲۰ حرف باشد.');
     }
     if (d.amount <= 0) {
       return AppFailure.validation('مبلغ هزینه باید بیشتر از صفر باشد.');
@@ -39,7 +39,8 @@ class MockExpenseRepository implements ExpenseRepository {
   Future<Result<List<Expense>>> getExpenses() async {
     try {
       await _latency();
-      final list = [..._db.expenses]..sort((a, b) => b.date.compareTo(a.date));
+      final list = List<Expense>.of(_db.expenses)
+        ..sort((a, b) => b.date.compareTo(a.date));
       return Success(list);
     } catch (e) {
       return Failure(AppFailure.unknown(e));

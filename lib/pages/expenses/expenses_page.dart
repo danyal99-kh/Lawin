@@ -1,4 +1,3 @@
-// lib/pages/expenses/expenses_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,12 +11,11 @@ import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
-import 'widgets/expense_filters.dart';
 import 'widgets/expense_form.dart';
 import 'widgets/expense_list_tile.dart';
 import 'widgets/expenses_table.dart';
 
-/// مدیریت هزینه‌ها: جستجو، فیلتر دسته‌بندی، ثبت، ویرایش و حذف.
+/// مدیریت هزینه‌ها: ثبت، ویرایش و حذف (با تأیید).
 /// عرض محتوا ≥ ۷۲۰: جدول؛ کمتر: کارت‌های موبایل.
 class ExpensesPage extends StatefulWidget {
   const ExpensesPage({super.key});
@@ -29,20 +27,12 @@ class ExpensesPage extends StatefulWidget {
 class _ExpensesPageState extends State<ExpensesPage> {
   static const double _tableMinWidth = 720;
 
-  final _search = TextEditingController();
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<ExpenseProvider>().load();
     });
-  }
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
   }
 
   void _snack(String message) {
@@ -53,11 +43,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
   Future<void> _openForm([Expense? expense]) async {
     final saved = await showAdaptiveSheet<bool>(
       context: context,
-      maxDialogWidth: 560,
+      maxDialogWidth: 520,
       builder: (_) => ExpenseForm(expense: expense),
     );
     if (saved == true && mounted) {
-      _snack(expense == null ? 'هزینه جدید ثبت شد.' : 'تغییرات ذخیره شد.');
+      _snack(expense == null ? 'هزینه‌ی جدید ثبت شد.' : 'تغییرات ذخیره شد.');
     }
   }
 
@@ -65,7 +55,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final ok = await showConfirmDialog(
       context,
       title: 'حذف هزینه',
-      message: 'هزینه «${expense.title}» حذف شود؟ این کار قابل بازگشت نیست.',
+      message: 'هزینه‌ی «${expense.title}» حذف شود؟ این کار قابل بازگشت نیست.',
       confirmLabel: 'حذف',
       destructive: true,
     );
@@ -84,8 +74,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
       child: AsyncStateView<List<Expense>>(
         state: provider.state,
         onRetry: provider.load,
-        builder: (context, all) {
-          final visible = provider.visible;
+        builder: (context, expenses) {
+          final total = expenses.fold<int>(0, (sum, e) => sum + e.amount);
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: PageContainer(
@@ -94,10 +84,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 children: [
                   SectionHeader(
                     title: 'هزینه‌ها',
-                    subtitle: all.isEmpty
+                    subtitle: expenses.isEmpty
                         ? null
-                        : 'جمع ${_fa(visible.length)} هزینه: '
-                            '${PersianFormat.money(provider.totalAmount)}',
+                        : 'جمع ${PersianFormat.digits(expenses.length)} مورد: '
+                            '${PersianFormat.money(total)}',
                     actions: [
                       OutlinedButton.icon(
                         onPressed: provider.load,
@@ -107,21 +97,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       FilledButton.icon(
                         onPressed: () => _openForm(),
                         icon: const Icon(Icons.add, size: 20),
-                        label: const Text('هزینه جدید'),
+                        label: const Text('هزینه‌ی جدید'),
                       ),
                     ],
                   ),
-                  if (all.isNotEmpty) ...[
-                    ExpenseFilters(
-                        provider: provider, searchController: _search),
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
-                  if (all.isEmpty)
+                  if (expenses.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(AppSpacing.xl),
                       child: EmptyView(
                         title: 'هنوز هزینه‌ای ثبت نشده',
-                        message: 'اولین هزینه‌ی کافه را ثبت کنید.',
+                        message: 'اولین هزینه را ثبت کنید.',
                         icon: Icons.payments_outlined,
                         action: FilledButton.icon(
                           onPressed: () => _openForm(),
@@ -130,34 +115,20 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         ),
                       ),
                     )
-                  else if (visible.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
-                      child: EmptyView(
-                        title: 'هزینه‌ای با این جستجو یا فیلتر پیدا نشد',
-                        icon: Icons.search_off,
-                        action: OutlinedButton(
-                          onPressed: () {
-                            _search.clear();
-                            provider.clearFilters();
-                          },
-                          child: const Text('پاک کردن فیلترها'),
-                        ),
-                      ),
-                    )
-                  else
+                  else ...[
+                    const SizedBox(height: AppSpacing.lg),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         if (constraints.maxWidth >= _tableMinWidth) {
                           return ExpensesTable(
-                            expenses: visible,
+                            expenses: expenses,
                             onEdit: _openForm,
                             onDelete: _delete,
                           );
                         }
                         return Column(
                           children: [
-                            for (final e in visible)
+                            for (final e in expenses)
                               Padding(
                                 padding: const EdgeInsets.only(
                                     bottom: AppSpacing.md),
@@ -171,6 +142,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         );
                       },
                     ),
+                  ],
                 ],
               ),
             ),
@@ -179,6 +151,4 @@ class _ExpensesPageState extends State<ExpensesPage> {
       ),
     );
   }
-
-  static String _fa(int n) => PersianFormat.digits(n);
 }

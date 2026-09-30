@@ -28,14 +28,23 @@ abstract final class ApiEndpoints {
   static String product(int id) => '$_v1/products/$id/';
   static const String categories = '$_v1/categories/';
   static String category(int id) => '$_v1/categories/$id/';
-
+  static String productRecipe(int id) => '$_v1/products/$id/recipe/';
   // Inventory
   static const String inventoryItems = '$_v1/inventory/items/';
+  static String inventoryItem(int id) => '$_v1/inventory/items/$id/';
   static const String purchases = '$_v1/inventory/purchases/';
   static const String wastes = '$_v1/inventory/wastes/';
-
+  static const String recipes = '$_v1/recipes/';
   // Accounting
   static const String expenses = '$_v1/accounting/expenses/';
+  static String expense(int id) => '$_v1/accounting/expenses/$id/';
   static const String transactions = '$_v1/accounting/transactions/';
   static const String reports = '$_v1/reports/';
+
+  static String orderBarPrinted(String id) => '$_v1/orders/$id/bar-printed/';
+  static const String welcomeSettings = '$_v1/settings/welcome/';
+  static const String waiterCalls = '$_v1/waiter-calls/';
+  static String waiterAck(String id) => '$_v1/waiter-calls/$id/acknowledge/';
+  static String waiterComplete(String id) => '$_v1/waiter-calls/$id/complete/';
+  static String tablePay(int id) => '$_v1/tables/$id/pay/';
 }
