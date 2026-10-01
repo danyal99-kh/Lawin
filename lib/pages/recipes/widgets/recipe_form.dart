@@ -30,16 +30,23 @@ class RecipeForm extends StatefulWidget {
 
 class _RowState {
   _RowState(this.item, double quantity)
-      : controller = TextEditingController(
-            text: quantity == 0
-                ? ''
-                : PersianFormat.number(quantity, decimals: 2));
+      : controller = TextEditingController(text: _initialText(quantity));
 
   final InventoryItem item;
   final TextEditingController controller;
 
-  double? get quantity => double.tryParse(
-      TextUtils.latinDigits(controller.text.trim()).replaceAll('٫', '.'));
+  /// بدون جداکننده‌ی هزارگان و بدون گرد کردن (Django تا ۳ رقم اعشار نگه می‌دارد).
+  static String _initialText(double q) {
+    if (q == 0) return '';
+    final s = q == q.roundToDouble() ? q.toInt().toString() : q.toString();
+    return PersianFormat.digits(s).replaceAll('.', '٫');
+  }
+
+  double? get quantity =>
+      double.tryParse(TextUtils.latinDigits(controller.text.trim())
+          .replaceAll('٫', '.')
+          .replaceAll('٬', '')
+          .replaceAll(',', ''));
 }
 
 class _RecipeFormState extends State<RecipeForm> {
