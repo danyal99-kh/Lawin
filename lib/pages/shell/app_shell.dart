@@ -14,6 +14,7 @@ import 'package:cafe_book_admin/providers/dashboard_provider.dart';
 import 'package:cafe_book_admin/providers/incoming_orders_provider.dart';
 import 'package:cafe_book_admin/providers/order_provider.dart';
 import 'package:cafe_book_admin/providers/table_provider.dart';
+import 'package:cafe_book_admin/providers/waiter_call_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -75,6 +76,8 @@ class _AppShellState extends State<AppShell> {
       context.read<DashboardProvider>().load();
       context.read<TableProvider>().load();
       context.read<OrderProvider>().load();
+      // بارگذاری اولیه‌ی درخواست‌های فعال گارسون (تایمر یادآوری صدا از این لیست شروع می‌شود).
+      context.read<WaiterCallProvider>().load();
       if (!AppConfig.useMock) {
         _sync = context.read<RealtimeSync>()..start();
       }

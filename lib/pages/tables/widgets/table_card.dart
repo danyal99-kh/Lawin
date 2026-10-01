@@ -5,24 +5,41 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/persian_format.dart';
 import '../../../models/enums.dart';
 import '../../../models/table_overview.dart';
+import '../../../models/waiter_call.dart';
 import '../../../widgets/app_card.dart';
 import '../../../widgets/live_duration.dart';
 import '../../../widgets/status_chip.dart';
 import '../../../widgets/status_tones.dart';
 import 'info_row.dart';
+import 'waiter_call_banner.dart';
 
 /// کارت یک میز: شماره، وضعیت، زمان ورود/خروج، مدت حضور (زنده برای میز فعال)، سفارش فعال و مبلغ فعلی.
+/// اگر [waiterCall] داده شود، نوار درخواست گارسون هم بالای کارت نمایش داده می‌شود؛ تصمیم درباره‌ی
+/// fallback (داده‌ی `overview.waiterCall`) در `WaiterCallProvider.callForTable` گرفته می‌شود، نه اینجا.
 class TableCard extends StatelessWidget {
-  const TableCard({super.key, required this.overview, required this.onTap});
+  const TableCard({
+    super.key,
+    required this.overview,
+    required this.onTap,
+    this.waiterCall,
+    this.onAcknowledgeWaiter,
+    this.onCompleteWaiter,
+    this.waiterBusy = false,
+  });
 
   final TableOverview overview;
   final VoidCallback onTap;
+  final WaiterCall? waiterCall;
+  final ValueChanged<WaiterCall>? onAcknowledgeWaiter;
+  final ValueChanged<WaiterCall>? onCompleteWaiter;
+  final bool waiterBusy;
 
   @override
   Widget build(BuildContext context) {
     final table = overview.table;
     final tone = table.status.tone;
     final theme = Theme.of(context).textTheme;
+    final call = waiterCall;
 
     return AppCard(
       onTap: onTap,
@@ -40,8 +57,7 @@ class TableCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Text(PersianFormat.digits(table.number),
-                    style:
-                        theme.titleLarge?.copyWith(color: tone.foreground)),
+                    style: theme.titleLarge?.copyWith(color: tone.foreground)),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -58,6 +74,18 @@ class TableCard extends StatelessWidget {
             ],
           ),
           const Divider(height: AppSpacing.xl),
+          if (call != null && call.isActive) ...[
+            WaiterCallBanner(
+              call: call,
+              busy: waiterBusy,
+              onAcknowledge: onAcknowledgeWaiter == null
+                  ? null
+                  : () => onAcknowledgeWaiter!(call),
+              onComplete: onCompleteWaiter == null
+                  ? null
+                  : () => onCompleteWaiter!(call),
+            ),
+          ],
           _Body(overview: overview),
         ],
       ),
@@ -115,7 +143,8 @@ class _Body extends StatelessWidget {
       case TableStatus.empty:
         final last = overview.lastSession;
         if (last == null || last.exitedAt == null) {
-          return Text('هنوز نشستی برای این میز ثبت نشده', style: theme.bodySmall);
+          return Text('هنوز نشستی برای این میز ثبت نشده',
+              style: theme.bodySmall);
         }
         return Column(
           children: [

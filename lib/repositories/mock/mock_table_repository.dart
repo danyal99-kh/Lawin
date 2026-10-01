@@ -67,6 +67,7 @@ class MockTableRepository implements TableRepository {
       activeSession: active,
       lastSession: last,
       openOrders: open,
+      waiterCall: _db.activeWaiterCallFor(table.id),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'cafe_table.dart';
 import 'enums.dart';
 import 'order.dart';
 import 'table_session.dart';
+import 'waiter_call.dart';
 
 /// نمای کامل یک میز برای صفحه‌ی میزها: خود میز، نشست فعال، آخرین نشست بسته‌شده و سفارش‌های باز.
 /// معادل یک آیتم از `GET /api/v1/tables/`.
@@ -11,6 +12,7 @@ class TableOverview {
     this.activeSession,
     this.lastSession,
     this.openOrders = const [],
+    this.waiterCall,
   });
 
   final CafeTable table;
@@ -19,6 +21,9 @@ class TableOverview {
   /// آخرین نشستی که بسته شده (برای نمایش زمان خروج میز خالی).
   final TableSession? lastSession;
   final List<Order> openOrders;
+
+  /// درخواست فعال گارسون برای این میز (بک‌اند در `waiter_call` همین را می‌فرستد).
+  final WaiterCall? waiterCall;
 
   TableStatus get status => table.status;
 
@@ -37,6 +42,7 @@ class TableOverview {
       openOrders: (json['open_orders'] as List<dynamic>? ?? const [])
           .map((e) => Order.fromJson(e as Map<String, dynamic>))
           .toList(),
+      waiterCall: WaiterCall.fromJsonNullable(json['waiter_call']),
     );
   }
 
@@ -45,5 +51,6 @@ class TableOverview {
         'active_session': activeSession?.toJson(),
         'last_session': lastSession?.toJson(),
         'open_orders': openOrders.map((o) => o.toJson()).toList(),
+        'waiter_call': waiterCall?.toJson(),
       };
 }

@@ -2,11 +2,13 @@ import 'package:cafe_book_admin/pages/tables/widgets/payment_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/errors/app_failure.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/persian_format.dart';
 import '../../models/enums.dart';
 import '../../models/table_overview.dart';
 import '../../providers/table_provider.dart';
+import '../../providers/waiter_call_provider.dart';
 import '../../responsive/adaptive_grid.dart';
 import '../../responsive/page_container.dart';
 import '../../widgets/adaptive_sheet.dart';
@@ -83,9 +85,40 @@ class _TablesPageState extends State<TablesPage> {
     ));
   }
 
+  /// اجرای یکی از اقدامات گارسون و گزارش نتیجه؛ خطا فقط در SnackBar دیده می‌شود.
+  Future<void> _waiterAction(
+      Future<AppFailure?> Function() action, String done) async {
+    final failure = await action();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(failure?.userMessage ?? done),
+    ));
+  }
+
+  /// کارت میز + وضعیت زنده‌ی درخواست گارسون همان میز (اگر وجود داشته باشد).
+  Widget _card(TableOverview overview, WaiterCallProvider waiterCalls) {
+    final call = waiterCalls.callForTable(
+      overview.table.id,
+      fallback: overview.waiterCall,
+    );
+    final number =
+        call == null ? '' : ' میز ${PersianFormat.digits(call.tableNumber)}';
+    return TableCard(
+      overview: overview,
+      onTap: () => _openDetail(overview),
+      waiterCall: call,
+      waiterBusy: call != null && waiterCalls.isBusy(call.id),
+      onAcknowledgeWaiter: (c) => _waiterAction(
+          () => waiterCalls.acknowledge(c.id), 'درخواست$number ثبت شد.'),
+      onCompleteWaiter: (c) => _waiterAction(
+          () => waiterCalls.complete(c.id), 'درخواست$number بسته شد.'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TableProvider>();
+    final waiterCalls = context.watch<WaiterCallProvider>();
     return RefreshIndicator(
       onRefresh: provider.load,
       child: AsyncStateView<List<TableOverview>>(
@@ -128,11 +161,7 @@ class _TablesPageState extends State<TablesPage> {
                       minItemWidth: 260,
                       maxColumns: 5,
                       children: [
-                        for (final o in visible)
-                          TableCard(
-                            overview: o,
-                            onTap: () => _openDetail(o),
-                          ),
+                        for (final o in visible) _card(o, waiterCalls),
                       ],
                     ),
                 ],

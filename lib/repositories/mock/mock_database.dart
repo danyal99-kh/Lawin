@@ -11,6 +11,7 @@ import '../../models/order.dart';
 import '../../models/product.dart';
 import '../../models/product_category.dart';
 import '../../models/table_session.dart';
+import '../../models/waiter_call.dart';
 
 /// دیتابیس درون‌حافظه‌ای برای توسعه‌ی UI تا زمانی که Django آماده نیست.
 /// همه‌ی Mock Repositoryها از یک نمونه‌ی مشترک استفاده می‌کنند تا داده‌ها با هم سازگار باشند.
@@ -24,13 +25,20 @@ class MockDatabase {
     required this.expenses,
     required this.inventoryItems,
     required this.sessions,
+    required this.waiterCalls,
     required this.recipes,
     required this.lastOrderNumber,
     required this.lastSessionNumber,
     required int productSeq,
     required int categorySeq,
   })  : _productSeq = productSeq,
-        _categorySeq = categorySeq;
+        _categorySeq = categorySeq {
+    // شناسه‌ی درخواست‌های نمونه از ۱ شروع می‌شود؛ شمارنده نباید با آن‌ها تداخل کند.
+    for (final c in waiterCalls) {
+      final seed = int.tryParse(c.id.split('-').last);
+      if (seed != null && seed > _waiterCallSeq) _waiterCallSeq = seed;
+    }
+  }
 
   // ---------- داده‌های اصلی ----------
   final List<ProductCategory> categories;
@@ -40,12 +48,14 @@ class MockDatabase {
   final List<Expense> expenses;
   final List<InventoryItem> inventoryItems;
   final List<TableSession> sessions;
+  final List<WaiterCall> waiterCalls;
   final Map<int, List<RecipeItem>> recipes;
   int lastOrderNumber;
   int lastSessionNumber;
 
   int _productSeq;
   int _categorySeq;
+  int _waiterCallSeq = 0;
   List<RecipeItem> recipeFor(int productId) => recipes[productId] ?? const [];
 
   void setRecipe(int productId, List<RecipeItem> items) {
@@ -131,6 +141,47 @@ class MockDatabase {
   void replaceOrder(Order order) {
     final i = orders.indexWhere((o) => o.id == order.id);
     if (i >= 0) orders[i] = order;
+  }
+
+  /// درخواست فعالِ یک میز (pending/acknowledged)؛ معادل کوئری بک‌اند.
+  WaiterCall? activeWaiterCallFor(int tableId) {
+    for (final c in waiterCalls.reversed) {
+      if (c.tableId == tableId && c.isActive) return c;
+    }
+    return null;
+  }
+
+  WaiterCall? waiterCallById(String id) {
+    for (final c in waiterCalls) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  void replaceWaiterCall(WaiterCall call) {
+    final i = waiterCalls.indexWhere((c) => c.id == call.id);
+    if (i >= 0) {
+      waiterCalls[i] = call;
+    } else {
+      waiterCalls.add(call);
+    }
+  }
+
+  /// ثبت درخواست از سمت مشتری؛ اگر درخواست فعالی باشد تکراری ساخته نمی‌شود.
+  (WaiterCall, bool) requestWaiterCall(int tableId, {DateTime? now}) {
+    final existing = activeWaiterCallFor(tableId);
+    if (existing != null) return (existing, false);
+    final table = tableById(tableId);
+    _waiterCallSeq++;
+    final call = WaiterCall(
+      id: 'mock-waiter-call-$_waiterCallSeq',
+      tableId: table.id,
+      tableNumber: table.number,
+      status: WaiterCallStatus.pending,
+      createdAt: now ?? DateTime.now(),
+    );
+    waiterCalls.add(call);
+    return (call, true);
   }
 
   // ---------- داده‌ی اولیه ----------
@@ -308,6 +359,33 @@ class MockDatabase {
             id: n, number: n, status: tableStatuses[n] ?? TableStatus.empty),
     ];
 
+    // درخواست‌های گارسون نمونه (بک‌اند این‌ها را ندارد) تا UI در حالت Mock قابل بررسی باشد:
+    // میز ۲ در انتظار، میز ۵ دیده‌شده، میز ۷ در انتظار.
+    final waiterCalls = <WaiterCall>[
+      WaiterCall(
+        id: 'mock-waiter-call-1',
+        tableId: 2,
+        tableNumber: 2,
+        status: WaiterCallStatus.pending,
+        createdAt: clock.subtract(const Duration(minutes: 4)),
+      ),
+      WaiterCall(
+        id: 'mock-waiter-call-2',
+        tableId: 5,
+        tableNumber: 5,
+        status: WaiterCallStatus.acknowledged,
+        createdAt: clock.subtract(const Duration(minutes: 6)),
+        acknowledgedAt: clock.subtract(const Duration(minutes: 2)),
+      ),
+      WaiterCall(
+        id: 'mock-waiter-call-3',
+        tableId: 7,
+        tableNumber: 7,
+        status: WaiterCallStatus.pending,
+        createdAt: clock.subtract(const Duration(minutes: 1)),
+      ),
+    ];
+
     final inventory = <InventoryItem>[
       const InventoryItem(
           id: 1,
@@ -475,6 +553,7 @@ class MockDatabase {
       expenses: expenses,
       inventoryItems: inventory,
       sessions: sessions,
+      waiterCalls: waiterCalls,
       lastOrderNumber: counter,
       lastSessionNumber: counter,
       recipes: recipes,

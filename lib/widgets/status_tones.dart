@@ -1,4 +1,5 @@
 import '../models/enums.dart';
+import '../models/waiter_call.dart';
 import 'status_chip.dart';
 
 /// نگاشت وضعیت‌های دامنه به رنگ معنایی. منطق رنگ فقط اینجاست، نه در صفحات.
@@ -26,5 +27,13 @@ extension StockStatusTone on StockStatus {
         StockStatus.ok => StatusTone.success,
         StockStatus.low => StatusTone.warning,
         StockStatus.out => StatusTone.danger,
+      };
+}
+
+extension WaiterCallStatusTone on WaiterCallStatus {
+  StatusTone get tone => switch (this) {
+        WaiterCallStatus.pending => StatusTone.warning,
+        WaiterCallStatus.acknowledged => StatusTone.info,
+        WaiterCallStatus.completed => StatusTone.success,
       };
 }

@@ -11,6 +11,7 @@ import 'package:cafe_book_admin/providers/purchase_provider.dart';
 import 'package:cafe_book_admin/providers/recipe_provider.dart';
 import 'package:cafe_book_admin/providers/report_provider.dart';
 import 'package:cafe_book_admin/providers/settings_provider.dart';
+import 'package:cafe_book_admin/providers/waiter_call_provider.dart';
 import 'package:cafe_book_admin/providers/waste_provider.dart';
 import 'package:cafe_book_admin/repositories/accounting_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_accounting_repository.dart';
@@ -27,6 +28,7 @@ import 'package:cafe_book_admin/repositories/api/api_report_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_settings_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_table_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_waste_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_waiter_call_repository.dart';
 import 'package:cafe_book_admin/repositories/expense_repository.dart';
 import 'package:cafe_book_admin/repositories/inventory_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_accounting_repository.dart';
@@ -38,6 +40,7 @@ import 'package:cafe_book_admin/repositories/mock/mock_purchase_repository.dart'
 import 'package:cafe_book_admin/repositories/mock/mock_recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_report_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_settings_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_waiter_call_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_waste_repository.dart';
 import 'package:cafe_book_admin/repositories/order_repository.dart';
 import 'package:cafe_book_admin/repositories/payment_repository.dart';
@@ -45,6 +48,7 @@ import 'package:cafe_book_admin/repositories/purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/report_repository.dart';
 import 'package:cafe_book_admin/repositories/settings_repository.dart';
+import 'package:cafe_book_admin/repositories/waiter_call_repository.dart';
 import 'package:cafe_book_admin/repositories/waste_repository.dart';
 import 'package:cafe_book_admin/services/realtime_service.dart';
 import 'package:flutter/widgets.dart';
@@ -217,12 +221,22 @@ class AppProviders extends StatelessWidget {
               RealtimeService(() => ctx.read<TokenStorage>().read()),
           dispose: (_, s) => s.dispose(),
         ),
+        // ---------- Waiter calls (درخواست گارسون) ----------
+        Provider<WaiterCallRepository>(
+          create: (ctx) => AppConfig.useMock
+              ? MockWaiterCallRepository(ctx.read<MockDatabase>())
+              : ApiWaiterCallRepository(ctx.read<ApiClient>()),
+        ),
+        ChangeNotifierProvider<WaiterCallProvider>(
+          create: (ctx) => WaiterCallProvider(ctx.read<WaiterCallRepository>()),
+        ),
         ChangeNotifierProvider<RealtimeSync>(
           create: (ctx) => RealtimeSync(
             service: ctx.read<RealtimeService>(),
             orders: ctx.read<OrderProvider>(),
             tables: ctx.read<TableProvider>(),
             dashboard: ctx.read<DashboardProvider>(),
+            waiterCalls: ctx.read<WaiterCallProvider>(),
             changesRepo: AppConfig.useMock
                 ? null
                 : ApiOrderRepository(ctx.read<ApiClient>()),

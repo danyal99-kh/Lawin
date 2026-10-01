@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../models/waiter_call.dart';
 import '../repositories/api/api_order_repository.dart';
 import '../services/realtime_service.dart';
 import 'dashboard_provider.dart';
 import 'order_provider.dart';
 import 'table_provider.dart';
+import 'waiter_call_provider.dart';
 
 /// رویدادهای لحظه‌ای Django را به Providerهای موجود وصل می‌کند.
 class RealtimeSync extends ChangeNotifier {
@@ -15,6 +17,7 @@ class RealtimeSync extends ChangeNotifier {
     required this.orders,
     required this.tables,
     required this.dashboard,
+    required this.waiterCalls,
     this.changesRepo,
   });
 
@@ -22,6 +25,10 @@ class RealtimeSync extends ChangeNotifier {
   final OrderProvider orders;
   final TableProvider tables;
   final DashboardProvider dashboard;
+
+  /// درخواست‌های گارسون؛ رویدادهای آن مستقیم روی همین Provider اعمال می‌شود
+  /// (بدون بارگذاری مجدد) تا صدای هشدار بدون تأخیر پخش شود.
+  final WaiterCallProvider waiterCalls;
   final ApiOrderRepository? changesRepo;
 
   StreamSubscription? _evSub;
@@ -51,7 +58,7 @@ class RealtimeSync extends ChangeNotifier {
   Future<void> start() async {
     if (_started) return; // جلوگیری از Subscribe دوباره
     _started = true;
-    _evSub = service.events.listen(_onEvent);
+    _evSub = service.events.listen(handleEvent);
     _connSub = service.connection.listen((ok) {
       _connected = ok;
       notifyListeners();
@@ -73,7 +80,9 @@ class RealtimeSync extends ChangeNotifier {
     await service.stop();
   }
 
-  void _onEvent(RealtimeEvent e) {
+  /// پخش رویداد به Providerهای مربوطه؛ عمومی است تا تست بتواند همان مسیر
+  /// واقعی WebSocket را بدون سرور اجرا کند.
+  void handleEvent(RealtimeEvent e) {
     switch (e.name) {
       case 'order_created':
         final o = e.data['order'] as Map<String, dynamic>?;
@@ -87,7 +96,18 @@ class RealtimeSync extends ChangeNotifier {
       case 'payment_completed':
       case 'table_status_changed':
         _refreshSoon();
+      case 'waiter_call_created':
+      case 'waiter_call_acknowledged':
+      case 'waiter_call_completed':
+        _applyWaiterCall(e);
     }
+  }
+
+  /// بک‌اند `{"call": {...}}` می‌فرستد؛ همان شیء، منبع حقیقت است.
+  void _applyWaiterCall(RealtimeEvent e) {
+    final raw = e.data['call'];
+    if (raw is! Map<String, dynamic>) return;
+    waiterCalls.applyCall(WaiterCall.fromJson(raw));
   }
 
   /// چند رویداد پشت‌سرهم → فقط یک بار بارگذاری.
@@ -104,6 +124,7 @@ class RealtimeSync extends ChangeNotifier {
     orders.load();
     tables.load();
     dashboard.load();
+    waiterCalls.load();
     final repo = changesRepo;
     if (repo != null) {
       final r = await repo.changes(_cursor);

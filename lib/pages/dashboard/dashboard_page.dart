@@ -7,6 +7,7 @@ import '../../core/utils/view_state.dart';
 import '../../models/dashboard_summary.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../../providers/waiter_call_provider.dart';
 import '../../responsive/breakpoints.dart';
 import '../../responsive/page_container.dart';
 import '../../widgets/section_header.dart';
@@ -18,6 +19,7 @@ import 'widgets/low_stock_panel.dart';
 import 'widgets/recent_expenses_panel.dart';
 import 'widgets/recent_orders_panel.dart';
 import 'widgets/tables_status_panel.dart';
+import 'widgets/waiter_calls_panel.dart';
 
 /// داشبورد ادمین: همه‌ی اطلاعات مهم در یک نگاه.
 /// دسکتاپ: دو ستون (میزها + سفارش‌ها | موجودی + هزینه‌ها). موبایل/تبلت: یک ستون عمودی.
@@ -44,7 +46,12 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final provider = context.watch<DashboardProvider>();
     return RefreshIndicator(
-      onRefresh: provider.load,
+      onRefresh: () async {
+        await Future.wait([
+          provider.load(),
+          context.read<WaiterCallProvider>().load(),
+        ]);
+      },
       child: AsyncStateView<DashboardSummary>(
         state: provider.state,
         onRetry: provider.load,
@@ -68,6 +75,8 @@ class _DashboardContent extends StatelessWidget {
     final lowCount = summary.lowStockItems.length;
 
     final mainColumn = <Widget>[
+      const WaiterCallsPanel(),
+      const SizedBox(height: AppSpacing.lg),
       TablesStatusPanel(tables: summary.tables),
       const SizedBox(height: AppSpacing.lg),
       RecentOrdersPanel(orders: summary.recentOrders),
