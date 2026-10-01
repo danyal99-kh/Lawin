@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../models/app_settings.dart';
@@ -209,11 +208,6 @@ class _SettingsFormState extends State<SettingsForm> {
                   : const Icon(Icons.save_outlined, size: 18),
               label: const Text('ذخیره تنظیمات'),
             ),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Center(
-            child: Text('${AppConstants.appName} — نسخه ۰٫۱٫۰',
-                style: theme.bodySmall),
           ),
         ],
       ),

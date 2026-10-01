@@ -22,6 +22,7 @@ import 'package:cafe_book_admin/repositories/api/api_payment_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_product_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_recipe_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_settings_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_table_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_waste_repository.dart';
 import 'package:cafe_book_admin/repositories/expense_repository.dart';
@@ -239,7 +240,9 @@ class AppProviders extends StatelessWidget {
           create: (ctx) => ReportProvider(ctx.read<ReportRepository>()),
         ), // ---------- Settings ----------
         Provider<SettingsRepository>(
-          create: (_) => MockSettingsRepository(),
+          create: (ctx) => AppConfig.useMock
+              ? MockSettingsRepository()
+              : ApiSettingsRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => SettingsProvider(ctx.read<SettingsRepository>()),

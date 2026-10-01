@@ -1,5 +1,7 @@
 /// تنظیمات کلی برنامه: اطلاعات کافه و رفتار پیش‌فرض سیستم.
-/// در مرحله‌ی اتصال به Django با یک Endpoint ساده (GET/PATCH) جایگزین می‌شود.
+///
+/// نام propertyها در Dart همان naming داخلی پنل است (مثلاً `cafeName`)؛ کلیدهای
+/// JSON دقیقاً همان چیزی است که Django در `GET/PATCH /api/v1/settings/` می‌گیرد.
 class AppSettings {
   const AppSettings({
     required this.cafeName,
@@ -24,21 +26,21 @@ class AppSettings {
   final bool lowStockAlertEnabled;
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
-        cafeName: json['cafe_name'] as String,
-        address: json['address'] as String?,
-        phone: json['phone'] as String?,
-        receiptFooterNote: json['receipt_footer_note'] as String?,
-        autoPrintBarOrders: json['auto_print_bar_orders'] as bool? ?? true,
-        lowStockAlertEnabled: json['low_stock_alert_enabled'] as bool? ?? true,
+        cafeName: json['name'] as String,
+        address: (json['address'] as String?)?.clean,
+        phone: (json['phone'] as String?)?.clean,
+        receiptFooterNote: (json['receipt_note'] as String?)?.clean,
+        autoPrintBarOrders: json['auto_print'] as bool? ?? true,
+        lowStockAlertEnabled: json['low_stock_alert'] as bool? ?? true,
       );
 
   Map<String, dynamic> toJson() => {
-        'cafe_name': cafeName,
+        'name': cafeName,
         'address': address,
         'phone': phone,
-        'receipt_footer_note': receiptFooterNote,
-        'auto_print_bar_orders': autoPrintBarOrders,
-        'low_stock_alert_enabled': lowStockAlertEnabled,
+        'receipt_note': receiptFooterNote,
+        'auto_print': autoPrintBarOrders,
+        'low_stock_alert': lowStockAlertEnabled,
       };
 }
 
@@ -61,19 +63,72 @@ class AppSettingsDraft {
   final bool lowStockAlertEnabled;
 
   /// حذف فاصله‌های اضافه؛ متن خالی → null.
-  AppSettingsDraft normalized() {
-    String? clean(String? s) {
-      final t = s?.trim();
-      return (t == null || t.isEmpty) ? null : t;
-    }
+  AppSettingsDraft normalized() => AppSettingsDraft(
+        cafeName: cafeName.trim(),
+        address: address.clean,
+        phone: phone.clean,
+        receiptFooterNote: receiptFooterNote.clean,
+        autoPrintBarOrders: autoPrintBarOrders,
+        lowStockAlertEnabled: lowStockAlertEnabled,
+      );
+}
 
-    return AppSettingsDraft(
-      cafeName: cafeName.trim(),
-      address: clean(address),
-      phone: clean(phone),
-      receiptFooterNote: clean(receiptFooterNote),
-      autoPrintBarOrders: autoPrintBarOrders,
-      lowStockAlertEnabled: lowStockAlertEnabled,
-    );
+/// پیام خوشامدگویی صفحه‌ی مشتری.
+///
+/// عمداً یک منبع جدا از [AppSettings] است: در Django هم مدل و endpoint خودش را
+/// دارد (`WelcomeMessage` + `/api/v1/settings/welcome/`) چون صفحه‌ی خوشامد
+/// جداگانه نمایش/غیرفعال می‌شود.
+class WelcomeSettings {
+  const WelcomeSettings({
+    required this.title,
+    required this.message,
+    this.enabled = true,
+    this.updatedAt,
+  });
+
+  final String title;
+  final String message;
+  final bool enabled;
+  final DateTime? updatedAt;
+
+  factory WelcomeSettings.fromJson(Map<String, dynamic> json) => WelcomeSettings(
+        title: json['title'] as String,
+        message: (json['message'] as String?) ?? '',
+        enabled: json['enabled'] as bool? ?? true,
+        updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? ''),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'message': message,
+        'enabled': enabled,
+        if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
+      };
+}
+
+/// داده‌ی فرم ویرایش پیام خوشامدگویی.
+class WelcomeSettingsDraft {
+  const WelcomeSettingsDraft({
+    required this.title,
+    required this.message,
+    this.enabled = true,
+  });
+
+  final String title;
+  final String message;
+  final bool enabled;
+
+  WelcomeSettingsDraft normalized() => WelcomeSettingsDraft(
+        title: title.trim(),
+        message: message.trim(),
+        enabled: enabled,
+      );
+}
+
+extension on String? {
+  /// فاصله‌های اضافه حذف شود؛ متن خالی → null (هم برای فرم و هم برای پاسخ API).
+  String? get clean {
+    final t = this?.trim();
+    return (t == null || t.isEmpty) ? null : t;
   }
 }

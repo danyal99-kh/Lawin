@@ -42,6 +42,7 @@ abstract final class ApiEndpoints {
   static const String reports = '$_v1/reports/';
 
   static String orderBarPrinted(String id) => '$_v1/orders/$id/bar-printed/';
+  static const String settings = '$_v1/settings/';
   static const String welcomeSettings = '$_v1/settings/welcome/';
   static const String waiterCalls = '$_v1/waiter-calls/';
   static String waiterAck(String id) => '$_v1/waiter-calls/$id/acknowledge/';

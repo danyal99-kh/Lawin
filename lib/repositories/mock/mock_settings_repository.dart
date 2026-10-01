@@ -12,6 +12,11 @@ class MockSettingsRepository implements SettingsRepository {
     receiptFooterNote: 'با تشکر از خرید شما 🌿',
   );
 
+  WelcomeSettings _welcome = const WelcomeSettings(
+    title: 'به کافه‌کتاب خوش آمدید ☕📚',
+    message: 'لحظه‌ای برای خودتان، یک فنجان برای حالتان.',
+  );
+
   Future<void> _latency() =>
       Future<void>.delayed(const Duration(milliseconds: 250));
 
@@ -21,6 +26,19 @@ class MockSettingsRepository implements SettingsRepository {
     }
     if (d.cafeName.length > 60) {
       return AppFailure.validation('نام کافه حداکثر ۶۰ حرف باشد.');
+    }
+    return null;
+  }
+
+  AppFailure? _validateWelcome(WelcomeSettingsDraft d) {
+    if (d.title.isEmpty) {
+      return AppFailure.validation('عنوان خوشامدگویی را وارد کنید.');
+    }
+    if (d.title.length > 120) {
+      return AppFailure.validation('عنوان خوشامدگویی حداکثر ۱۲۰ حرف باشد.');
+    }
+    if (d.message.length > 400) {
+      return AppFailure.validation('متن خوشامدگویی حداکثر ۴۰۰ حرف باشد.');
     }
     return null;
   }
@@ -51,6 +69,32 @@ class MockSettingsRepository implements SettingsRepository {
         lowStockAlertEnabled: d.lowStockAlertEnabled,
       );
       return Success(_settings);
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
+    }
+  }
+
+  @override
+  Future<Result<WelcomeSettings>> getWelcomeSettings() async {
+    try {
+      await _latency();
+      return Success(_welcome);
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
+    }
+  }
+
+  @override
+  Future<Result<WelcomeSettings>> updateWelcomeSettings(
+    WelcomeSettingsDraft draft,
+  ) async {
+    try {
+      await _latency();
+      final d = draft.normalized();
+      final invalid = _validateWelcome(d);
+      if (invalid != null) return Failure(invalid);
+      _welcome = WelcomeSettings(title: d.title, message: d.message, enabled: d.enabled);
+      return Success(_welcome);
     } catch (e) {
       return Failure(AppFailure.unknown(e));
     }
