@@ -13,6 +13,7 @@ import 'package:cafe_book_admin/providers/report_provider.dart';
 import 'package:cafe_book_admin/providers/settings_provider.dart';
 import 'package:cafe_book_admin/providers/waste_provider.dart';
 import 'package:cafe_book_admin/repositories/accounting_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_accounting_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_category_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_dashboard_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_expense_repository.dart';
@@ -22,6 +23,7 @@ import 'package:cafe_book_admin/repositories/api/api_payment_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_product_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_recipe_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_report_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_settings_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_table_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_waste_repository.dart';
@@ -226,15 +228,18 @@ class AppProviders extends StatelessWidget {
                 : ApiOrderRepository(ctx.read<ApiClient>()),
           ),
         ), // ---------- Accounting ----------
-        // ---------- Accounting (تا مرحله ۶ Mock) ----------
         Provider<AccountingRepository>(
-          create: (ctx) => MockAccountingRepository(ctx.read<MockDatabase>()),
+          create: (ctx) => AppConfig.useMock
+              ? MockAccountingRepository(ctx.read<MockDatabase>())
+              : ApiAccountingRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => AccountingProvider(ctx.read<AccountingRepository>()),
         ), // ---------- Reports ----------
         Provider<ReportRepository>(
-          create: (ctx) => MockReportRepository(ctx.read<MockDatabase>()),
+          create: (ctx) => AppConfig.useMock
+              ? MockReportRepository(ctx.read<MockDatabase>())
+              : ApiReportRepository(ctx.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (ctx) => ReportProvider(ctx.read<ReportRepository>()),
