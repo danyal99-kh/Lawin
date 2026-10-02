@@ -21,7 +21,7 @@ class OrderItem {
   int get lineTotal => quantity * unitPrice;
 
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
-        productId: json['product_id'] as int,
+        productId: (json['product_id'] as num?)?.toInt() ?? 0,
         productName: json['product_name'] as String,
         quantity: json['quantity'] as int,
         unitPrice: json['unit_price'] as int,
