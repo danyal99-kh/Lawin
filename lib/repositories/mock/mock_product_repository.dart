@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cafe_book_admin/core/network/utils/text_utils.dart';
 
 import '../../core/errors/app_failure.dart';
@@ -54,7 +56,7 @@ class MockProductRepository implements ProductRepository {
   }
 
   @override
-  Future<Result<Product>> create(ProductDraft draft) async {
+  Future<Result<Product>> create(ProductDraft draft, {File? image}) async {
     try {
       await _latency();
       final d = draft.normalized();
@@ -77,7 +79,7 @@ class MockProductRepository implements ProductRepository {
   }
 
   @override
-  Future<Result<Product>> update(int id, ProductDraft draft) async {
+  Future<Result<Product>> update(int id, ProductDraft draft, {File? image}) async {
     try {
       await _latency();
       final index = _db.products.indexWhere((p) => p.id == id);

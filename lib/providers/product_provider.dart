@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cafe_book_admin/core/network/utils/text_utils.dart';
 import 'package:flutter/foundation.dart';
 
@@ -92,10 +94,10 @@ class ProductProvider extends ChangeNotifier {
   }
 
   /// ایجاد (id == null) یا ویرایش. null یعنی موفق.
-  Future<AppFailure?> save(ProductDraft draft, {int? id}) async {
+  Future<AppFailure?> save(ProductDraft draft, {int? id, File? image}) async {
     final result = id == null
-        ? await _repository.create(draft)
-        : await _repository.update(id, draft);
+        ? await _repository.create(draft, image: image)
+        : await _repository.update(id, draft, image: image);
     final failure = result.failureOrNull;
     if (failure != null) return failure;
     _upsert(result.dataOrNull!);

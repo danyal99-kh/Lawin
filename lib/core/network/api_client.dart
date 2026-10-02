@@ -25,10 +25,10 @@ class ApiClient {
     return base.replace(path: path, queryParameters: query);
   }
 
-  Future<Map<String, String>> _headers() async {
+  Future<Map<String, String>> _headers({bool json = true}) async {
     final token = await _tokens.read();
     return {
-      'Content-Type': 'application/json',
+      if (json) 'Content-Type': 'application/json',
       'Accept': 'application/json',
       if (token != null) 'Authorization': 'Token $token',
     };
@@ -96,15 +96,14 @@ class ApiClient {
   Future<Result<T>> post<T>(String path, T Function(dynamic) parse,
           {Object? body}) =>
       _send(
-          (h) =>
-              _http.post(_uri(path), headers: h, body: jsonEncode(body ?? {})),
+          (h) => _http.post(_uri(path),
+              headers: h, body: jsonEncode(body ?? {})),
           parse);
 
   Future<Result<T>> put<T>(String path, T Function(dynamic) parse,
           {Object? body}) =>
       _send(
-          (h) =>
-              _http.put(_uri(path), headers: h, body: jsonEncode(body ?? {})),
+          (h) => _http.put(_uri(path), headers: h, body: jsonEncode(body ?? {})),
           parse);
 
   Future<Result<T>> patch<T>(String path, T Function(dynamic) parse,
@@ -116,4 +115,51 @@ class ApiClient {
 
   Future<Result<void>> delete(String path) =>
       _send<void>((h) => _http.delete(_uri(path), headers: h), (_) {});
+
+  /// Multipart request برای آپلود فایل‌ها (مثلاً تصویر محصول)
+  Future<Result<T>> multipartRequest<T>(
+    String method,
+    String path,
+    T Function(dynamic json) parse, {
+    Map<String, String>? fields,
+    Map<String, File>? files,
+  }) async {
+    try {
+      final headers = await _headers(json: false);
+      final request = http.MultipartRequest(method, _uri(path));
+      request.headers.addAll(headers);
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+      if (files != null) {
+        for (final entry in files.entries) {
+          final file = entry.value;
+          request.files.add(await http.MultipartFile.fromPath(
+            entry.key,
+            file.path,
+          ));
+        }
+      }
+      final streamedRes = await request.send().timeout(AppConfig.requestTimeout);
+      final res = await http.Response.fromStream(streamedRes);
+      final body =
+          res.bodyBytes.isEmpty ? null : jsonDecode(utf8.decode(res.bodyBytes));
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return Success(parse(body));
+      }
+      final failure = _failureFrom(res.statusCode, body);
+      if (failure.type == FailureType.unauthorized) onUnauthorized?.call();
+      return Failure(failure);
+    } on TimeoutException {
+      return Failure(AppFailure.timeout());
+    } on SocketException {
+      return Failure(AppFailure.network());
+    } on http.ClientException {
+      return Failure(AppFailure.network());
+    } on HandshakeException {
+      return Failure(AppFailure.network());
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
+    }
+  }
 }

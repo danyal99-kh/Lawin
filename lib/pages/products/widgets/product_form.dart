@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cafe_book_admin/core/network/utils/input_formatters.dart';
 import 'package:cafe_book_admin/core/network/utils/text_utils.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +39,7 @@ class _ProductFormState extends State<ProductForm> {
   bool _saving = false;
   String? _error;
   String? _categoryError;
+  File? _selectedImage;
 
   bool get _isEdit => widget.product != null;
 
@@ -66,8 +69,13 @@ class _ProductFormState extends State<ProductForm> {
 
   Future<void> _pickImage() async {
     try {
-      final path = await context.read<ImagePickerService>().pickImagePath();
-      if (path != null && mounted) setState(() => _image.text = path);
+      final file = await context.read<ImagePickerService>().pickImageFile();
+      if (file != null && mounted) {
+        setState(() {
+          _selectedImage = file;
+          _image.text = file.path;
+        });
+      }
     } on AppFailure catch (f) {
       if (mounted) setState(() => _error = f.userMessage);
     }
@@ -92,10 +100,11 @@ class _ProductFormState extends State<ProductForm> {
             categoryId: _categoryId!,
             price: _priceValue ?? 0,
             description: _description.text,
-            imageUrl: _image.text,
+            imageUrl: widget.product?.imageUrl,
             isActive: _isActive,
           ),
           id: widget.product?.id,
+          image: _selectedImage,
         );
     if (!mounted) return;
     if (failure == null) {
@@ -223,10 +232,13 @@ class _ProductFormState extends State<ProductForm> {
                               icon: const Icon(Icons.image_outlined, size: 18),
                               label: const Text('انتخاب از دستگاه'),
                             ),
-                            if (_image.text.trim().isNotEmpty)
+                            if (_image.text.trim().isNotEmpty ||
+                                _selectedImage != null)
                               TextButton(
-                                onPressed: () =>
-                                    setState(() => _image.clear()),
+                                onPressed: () => setState(() {
+                                  _image.clear();
+                                  _selectedImage = null;
+                                }),
                                 child: const Text('حذف تصویر'),
                               ),
                           ],
