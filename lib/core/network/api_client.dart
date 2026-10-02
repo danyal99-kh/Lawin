@@ -41,8 +41,7 @@ class ApiClient {
     try {
       final res =
           await call(await _headers()).timeout(AppConfig.requestTimeout);
-      final body =
-          res.bodyBytes.isEmpty ? null : jsonDecode(utf8.decode(res.bodyBytes));
+      final body = _decodeBody(res);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         return Success(parse(body));
       }
@@ -59,6 +58,19 @@ class ApiClient {
       return Failure(AppFailure.network());
     } catch (e) {
       return Failure(AppFailure.unknown(e));
+    }
+  }
+
+  /// بدنه‌ی پاسخ را به JSON تبدیل می‌کند، اما اگر سرور HTML برگرداند
+  /// (مثلاً صفحه‌ی خطای Django یا DisallowedHost) به‌جای پرتاب FormatException
+  /// مقدار null می‌دهد. بدون این محافظت، هر پاسخ غیر‑JSON به «خطای غیرمنتظره»
+  /// تبدیل می‌شد و علت واقعی (کد وضعیت و متن سرور) پنهان می‌ماند.
+  static dynamic _decodeBody(http.Response res) {
+    if (res.bodyBytes.isEmpty) return null;
+    try {
+      return jsonDecode(utf8.decode(res.bodyBytes));
+    } on FormatException {
+      return null;
     }
   }
 
@@ -86,6 +98,15 @@ class ApiClient {
     if (status == 401 || status == 403) return AppFailure.unauthorized(message);
     if (status == 404) return AppFailure.notFound();
     if (status >= 500) return AppFailure.server(body);
+    // پاسخ ۴xx بدون JSON معتبر: سرور چیزی غیر از قرارداد API برگردانده
+    // (صفحه‌ی خطای Django، پروکسی، یا هاستی که در DJANGO_ALLOWED_HOSTS نیست).
+    if (body == null) {
+      return AppFailure(
+        FailureType.server,
+        message: 'پاسخ غیرمنتظره از سرور (کد $status). آدرس API و تنظیمات '
+            'ALLOWED_HOSTS بک‌اند را بررسی کنید.',
+      );
+    }
     return AppFailure.validation(message);
   }
 
