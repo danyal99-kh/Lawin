@@ -7,6 +7,7 @@ import '../../models/app_settings.dart';
 import '../../providers/settings_provider.dart';
 import '../../responsive/page_container.dart';
 import '../../widgets/state_views.dart';
+import 'widgets/security_settings_card.dart';
 import 'widgets/settings_form.dart';
 import 'widgets/welcome_settings_card.dart';
 
@@ -47,6 +48,8 @@ class _SettingsPageState extends State<SettingsPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SettingsForm(settings: settings),
+                const SizedBox(height: AppSpacing.xxl),
+                const SecuritySettingsCard(),
                 const SizedBox(height: AppSpacing.xxl),
                 AsyncStateView<WelcomeSettings>(
                   state: provider.welcomeState,

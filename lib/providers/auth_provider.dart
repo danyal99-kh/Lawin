@@ -9,6 +9,8 @@ enum AuthStatus { unknown, signedOut, signedIn }
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider(this._api, this._tokens) {
+    // همه‌ی درخواست‌ها توکن نشست را از حافظه می‌گیرند (fallback: رسانه‌ی امن).
+    _api.authToken = () => _token;
     _api.onUnauthorized = _handleUnauthorized;
   }
 
@@ -24,9 +26,21 @@ class AuthProvider extends ChangeNotifier {
   bool _busy = false;
   bool get busy => _busy;
 
+  /// جلوگیری از حلقه‌ی بازگشتی: وقتی خودِ logout جواب 401 می‌گیرد (توکنی که
+  /// می‌خواهد باطل کند از قبل مرده) نباید دوباره logout صدا زده شود.
+  bool _ignoringUnauthorized = false;
+
+  /// بازگردانی نشست. **هیچ ورود خودکار وجود ندارد:** اگر توکنی از اجرای قبلی
+  /// روی دستگاه باقی مانده باشد، بهترین‌تلاش آن را سمت سرور باطل می‌کنیم و
+  /// پاکش می‌کنیم؛ همیشه با صفحه‌ی ورود شروع می‌شود.
   Future<void> restore() async {
-    _token = await _tokens.read();
-    _status = _token == null ? AuthStatus.signedOut : AuthStatus.signedIn;
+    final saved = await _tokens.read();
+    if (saved != null) {
+      await _bestEffortRevoke();
+      await _tokens.clear();
+    }
+    _token = null;
+    _status = AuthStatus.signedOut;
     notifyListeners();
   }
 
@@ -51,14 +65,41 @@ class AuthProvider extends ChangeNotifier {
     return null;
   }
 
+  /// خروج کامل: ابتدا توکن سمت سرور باطل می‌شود، سپس حافظه‌ی امن پاک می‌شود.
+  /// نتیجه‌ی باطل‌سازی «بهترین‌تلاش» است؛ حتی اگر سرور در دسترس نباشد،
+  /// نشست محلی بسته می‌شود. وقتی از قبل خارج شده‌ایم چیزی به سرور نمی‌فرستیم.
   Future<void> logout() async {
+    if (_status == AuthStatus.signedOut) {
+      await _tokens.clear();
+      _token = null;
+      notifyListeners();
+      return;
+    }
+    _ignoringUnauthorized = true;
+    try {
+      await _bestEffortRevoke();
+    } finally {
+      _ignoringUnauthorized = false;
+    }
     await _tokens.clear();
     _token = null;
     _status = AuthStatus.signedOut;
     notifyListeners();
   }
 
+  /// باطل‌کردن توکنِ فعلی سمت سرور؛ نتیجه مهم نیست (آفلاین/خطا نباید مانع
+  /// بستن نشست محلی شود).
+  Future<void> _bestEffortRevoke() async {
+    try {
+      await _api.post<void>(ApiEndpoints.logout, (_) {});
+    } catch (_) {
+      // هیچ؛ بهترین‌تلاش.
+    }
+  }
+
   void _handleUnauthorized() {
-    if (_status == AuthStatus.signedIn) logout();
+    if (_status == AuthStatus.signedIn && !_ignoringUnauthorized) {
+      logout();
+    }
   }
 }

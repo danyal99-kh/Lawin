@@ -8,11 +8,14 @@ import 'package:cafe_book_admin/pages/orders/orders_page.dart';
 import 'package:cafe_book_admin/pages/purchases/purchases_page.dart';
 import 'package:cafe_book_admin/pages/recipes/recipes_page.dart';
 import 'package:cafe_book_admin/pages/reports/reports_page.dart';
+import 'package:cafe_book_admin/pages/security/security_gate.dart';
 import 'package:cafe_book_admin/pages/settings/settings_page.dart';
 import 'package:cafe_book_admin/pages/waste/waste_page.dart';
+import 'package:cafe_book_admin/providers/cafe_status_provider.dart';
 import 'package:cafe_book_admin/providers/dashboard_provider.dart';
 import 'package:cafe_book_admin/providers/incoming_orders_provider.dart';
 import 'package:cafe_book_admin/providers/order_provider.dart';
+import 'package:cafe_book_admin/providers/security_gate_provider.dart';
 import 'package:cafe_book_admin/providers/table_provider.dart';
 import 'package:cafe_book_admin/providers/waiter_call_provider.dart';
 import 'package:flutter/material.dart';
@@ -57,9 +60,18 @@ class AppShell extends StatefulWidget {
         AppDestination.recipes => const RecipesPage(),
         AppDestination.purchases => const PurchasesPage(),
         AppDestination.waste => const WastePage(),
-        AppDestination.expenses => const ExpensesPage(),
-        AppDestination.accounting => const AccountingPage(),
-        AppDestination.reports => const ReportsPage(),
+        AppDestination.expenses => SecurityGate(
+            section: SecuritySection.accounting,
+            child: const ExpensesPage(),
+          ),
+        AppDestination.accounting => SecurityGate(
+            section: SecuritySection.accounting,
+            child: const AccountingPage(),
+          ),
+        AppDestination.reports => SecurityGate(
+            section: SecuritySection.reports,
+            child: const ReportsPage(),
+          ),
         AppDestination.settings => const SettingsPage(),
         _ => PlaceholderPage(destination: d),
       };
@@ -67,6 +79,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   RealtimeSync? _sync;
+  SecuritySection? _lastFinancialSection;
 
   @override
   void initState() {
@@ -74,6 +87,9 @@ class _AppShellState extends State<AppShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<DashboardProvider>().load();
+      // وضعیت کافه منبع جداگانه‌ای دارد؛ بعد از ورود (و هر بار ساخته شدن این
+      // قاب) از Backend خوانده می‌شود تا بعد از Logout/Login هم درست باشد.
+      context.read<CafeStatusProvider>().load();
       context.read<TableProvider>().load();
       context.read<OrderProvider>().load();
       // بارگذاری اولیه‌ی درخواست‌های فعال گارسون (تایمر یادآوری صدا از این لیست شروع می‌شود).
@@ -81,6 +97,9 @@ class _AppShellState extends State<AppShell> {
       if (!AppConfig.useMock) {
         _sync = context.read<RealtimeSync>()..start();
       }
+      final navigation = context.read<NavigationProvider>();
+      navigation.addListener(_onSectionLeft);
+      _lastFinancialSection = sectionOf(navigation.current);
     });
   }
 
@@ -88,6 +107,18 @@ class _AppShellState extends State<AppShell> {
   void dispose() {
     _sync?.stop(); // AppShell با logout از درخت حذف می‌شود
     super.dispose();
+  }
+
+  /// «خروج از بخش مالی» یعنی ورود بعدی دوباره رمز امنیتی می‌خواهد. حرکت بین
+  /// حسابداری و هزینه‌ها (یک بخش مالی مشترک) گیت را دوباره قفل نمی‌کند.
+  void _onSectionLeft() {
+    if (!mounted) return;
+    final navigation = context.read<NavigationProvider>();
+    final currentSection = sectionOf(navigation.current);
+    final previous = _lastFinancialSection;
+    _lastFinancialSection = currentSection;
+    if (previous == null || previous == currentSection) return;
+    context.read<SecurityGateProvider>().invalidate(previous);
   }
 
   @override

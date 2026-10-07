@@ -8,4 +8,11 @@ abstract interface class PurchaseRepository {
 
   /// ثبت خرید؛ موجودی و قیمت خرید کالای مربوطه هم به‌روز می‌شود.
   Future<Result<Purchase>> create(PurchaseDraft draft);
+
+  /// اصلاح خرید. موجودی و ورودی دفتر **جایگزین** می‌شوند، نه انباشته؛ اگر
+  /// کم کردن مقدار، موجودی را منفی کند بک‌اند خطای outOfStock می‌دهد.
+  Future<Result<Purchase>> update(int id, PurchaseDraft draft);
+
+  /// حذف خرید؛ مقدار خریداری‌شده از موجودی کم و ورودی دفتر برگشت داده می‌شود.
+  Future<Result<void>> delete(int id);
 }

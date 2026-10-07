@@ -16,27 +16,41 @@ const String transactionsJson = '''
   "amount":220000,"date":"2026-10-01T08:40:00+03:30"}]
 ''';
 
-/// پاسخ گزارش ماه جاری؛ مجموع‌ها و تفکیک‌ها همه در Backend حساب شده‌اند.
+/// پاسخ گزارش ماه جاری؛ مجموع‌ها و تفکیک‌ها همه در Backend و از دفتر حسابداری
+/// مرکزی حساب شده‌اند.
 const String reportJson = '''
 {"start":"2026-09-23T00:00:00+03:30","end":"2026-10-02T00:00:00+03:30",
- "total_sales":3980000,"total_expenses":2070000,
+ "total_sales":3980000,"total_cogs":1450000,"gross_profit":2530000,
+ "total_expenses":2070000,"total_waste":120000,"net_profit":340000,
+ "total_purchases":1800000,"inventory_value":4230000,
+ "payment_methods":[{"method":"cash","label":"نقدی","amount":2480000},
+                    {"method":"card_transfer","label":"کارت‌به‌کارت","amount":1500000}],
+ "payments_total":3980000,
+ "cash_flow":{"cash":{"opening":500000,"in":2480000,"out":2600000},
+              "bank":{"opening":1200000,"in":1500000,"out":300000},
+              "opening":1700000,"total_in":3980000,"total_out":2900000},
  "order_count":4,"items_sold_count":11,
  "top_products":[{"product_id":3,"product_name":"کیک","quantity":4,"revenue":440000},
                  {"product_id":7,"product_name":"آیس آمریکانو","quantity":7,"revenue":315000}],
- "expenses_by_category":[{"category":"raw_materials","amount":1070000},
+ "expenses_by_category":[{"category":"supplies","amount":1070000},
                         {"category":"rent","amount":900000},
                         {"category":"salary","amount":100000}],
- "daily_points":[{"date":"2026-09-23","sales":0,"expenses":0},
-                 {"date":"2026-10-01","sales":95000,"expenses":1000000}]}
+ "daily_points":[{"date":"2026-09-23","sales":0,"expenses":0,"cogs":0,"waste":0,"profit":0},
+                 {"date":"2026-10-01","sales":95000,"expenses":1070000,"cogs":350000,"waste":50000,"profit":-995000}]}
 ''';
 
 /// همان ساختار، اما برای بازه‌ای که هیچ داده‌ای ندارد: Backend صفر و لیست
 /// خالی می‌فرستد، نه null و نه خطا.
 const String emptyReportJson = '''
 {"start":"2026-01-01T00:00:00+03:30","end":"2026-01-02T00:00:00+03:30",
- "total_sales":0,"total_expenses":0,"order_count":0,"items_sold_count":0,
+ "total_sales":0,"total_cogs":0,"gross_profit":0,"total_expenses":0,
+ "total_waste":0,"net_profit":0,"total_purchases":0,"inventory_value":0,
+ "payment_methods":[],"payments_total":0,
+ "cash_flow":{"cash":{"opening":0,"in":0,"out":0},"bank":{"opening":0,"in":0,"out":0},
+              "opening":0,"total_in":0,"total_out":0},
+ "order_count":0,"items_sold_count":0,
  "top_products":[],"expenses_by_category":[],
- "daily_points":[{"date":"2026-01-01","sales":0,"expenses":0}]}
+ "daily_points":[{"date":"2026-01-01","sales":0,"expenses":0,"cogs":0,"waste":0,"profit":0}]}
 ''';
 
 void main() {
@@ -111,13 +125,40 @@ void main() {
     test('reads the server numbers without recomputing them', () {
       expect(report.totalSales, 3980000);
       expect(report.totalExpenses, 2070000);
+      expect(report.totalCogs, 1450000);
+      expect(report.totalWaste, 120000);
       expect(report.orderCount, 4);
       expect(report.itemsSoldCount, 11);
     });
 
-    test('profit is derived from the server totals', () {
-      expect(report.totalProfit, 3980000 - 2070000);
+    test('profit comes from the server, not from client-side arithmetic', () {
+      // سود ناخالص و خالص را دفتر حساب کرده؛ کلاینت نباید
+      // `sales - expenses` را دوباره حساب کند (که COGS را از قلم می‌انداخت).
+      expect(report.grossProfit, 2530000);
+      expect(report.netProfit, 340000);
+      // یعنی سود خالص واقعاً کمتر از ناخالص است، برخلاف محاسبه‌ی قدیمی.
+      expect(report.netProfit, isNot(report.totalSales - report.totalExpenses));
       expect(report.averageOrderValue, 995000);
+    });
+
+    test('cash flow keeps opening balances instead of assuming zero', () {
+      expect(report.cashFlow.opening, 1700000);
+      expect(report.cashFlow.inflow, 3980000);
+      expect(report.cashFlow.outflow, 2900000);
+      expect(report.closingBalance, 2780000);
+      expect(report.cashFlow.cash.closing, 380000);
+      expect(report.cashFlow.bank.closing, 2400000);
+    });
+
+    test('payment methods come from the server with their labels', () {
+      expect(report.paymentMethods, hasLength(2));
+      expect(report.paymentMethods.first.method, PaymentMethod.cash);
+      expect(report.paymentMethods.first.amount, 2480000);
+      expect(
+        report.paymentMethods.last.method,
+        PaymentMethod.cardTransfer,
+      );
+      expect(report.paymentsTotal, 3980000);
     });
 
     test('range is half-open and stored in local time', () {
@@ -149,7 +190,7 @@ void main() {
       expect(
         report.expensesByCategory.map((e) => e.category),
         [
-          ExpenseCategory.rawMaterials,
+          ExpenseCategory.supplies,
           ExpenseCategory.rent,
           ExpenseCategory.salary,
         ],
@@ -168,8 +209,10 @@ void main() {
       expect(report.dailyPoints.first.sales, 0);
       final last = report.dailyPoints.last;
       expect(last.sales, 95000);
-      expect(last.expenses, 1000000);
-      expect(last.profit, -905000);
+      expect(last.expenses, 1070000);
+      expect(last.cogs, 350000);
+      expect(last.waste, 50000);
+      expect(last.profit, -995000);
       expect(last.date.year, 2026);
       expect(last.date.month, 10);
       expect(last.date.day, 1);
@@ -178,10 +221,12 @@ void main() {
     test('round-trips through toJson', () {
       final again = SalesReport.fromJson(report.toJson());
       expect(again.totalSales, report.totalSales);
+      expect(again.netProfit, report.netProfit);
+      expect(again.closingBalance, report.closingBalance);
       expect(again.topProducts.first.productName, 'کیک');
       expect(
         again.expensesByCategory.first.category,
-        ExpenseCategory.rawMaterials,
+        ExpenseCategory.supplies,
       );
       expect(again.dailyPoints.length, report.dailyPoints.length);
     });
@@ -194,7 +239,7 @@ void main() {
     test('numbers are zero and lists are empty', () {
       expect(report.totalSales, 0);
       expect(report.totalExpenses, 0);
-      expect(report.totalProfit, 0);
+      expect(report.netProfit, 0);
       expect(report.orderCount, 0);
       expect(report.itemsSoldCount, 0);
       expect(report.averageOrderValue, 0);

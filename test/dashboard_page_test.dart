@@ -7,17 +7,21 @@ import 'dart:io';
 import 'package:cafe_book_admin/core/errors/app_failure.dart';
 import 'package:cafe_book_admin/core/errors/result.dart';
 import 'package:cafe_book_admin/core/utils/persian_format.dart';
+import 'package:cafe_book_admin/models/cafe_status.dart';
 import 'package:cafe_book_admin/models/dashboard_summary.dart';
 import 'package:cafe_book_admin/models/waiter_call.dart';
 import 'package:cafe_book_admin/pages/dashboard/dashboard_page.dart';
+import 'package:cafe_book_admin/pages/dashboard/widgets/cafe_status_card.dart';
 import 'package:cafe_book_admin/pages/dashboard/widgets/dashboard_stats.dart';
 import 'package:cafe_book_admin/pages/dashboard/widgets/low_stock_panel.dart';
 import 'package:cafe_book_admin/pages/dashboard/widgets/recent_expenses_panel.dart';
 import 'package:cafe_book_admin/pages/dashboard/widgets/recent_orders_panel.dart';
 import 'package:cafe_book_admin/pages/dashboard/widgets/tables_status_panel.dart';
+import 'package:cafe_book_admin/providers/cafe_status_provider.dart';
 import 'package:cafe_book_admin/providers/dashboard_provider.dart';
 import 'package:cafe_book_admin/providers/navigation_provider.dart';
 import 'package:cafe_book_admin/providers/waiter_call_provider.dart';
+import 'package:cafe_book_admin/repositories/cafe_status_repository.dart';
 import 'package:cafe_book_admin/repositories/dashboard_repository.dart';
 import 'package:cafe_book_admin/repositories/waiter_call_repository.dart';
 import 'package:flutter/material.dart';
@@ -73,22 +77,43 @@ class _FakeWaiterRepository implements WaiterCallRepository {
       Failure(AppFailure.notFound());
 }
 
+/// وضعیت کافه برای تست داشبورد: همیشه بسته، بدون زمان.
+class _FakeCafeStatusRepository implements CafeStatusRepository {
+  @override
+  Future<Result<CafeStatus>> getStatus() async =>
+      const Success(CafeStatus(isOpen: false));
+
+  @override
+  Future<Result<CafeStatus>> open() async =>
+      const Success(CafeStatus(isOpen: true));
+
+  @override
+  Future<Result<CafeStatus>> close() async =>
+      const Success(CafeStatus(isOpen: false));
+}
+
 /// صفحه را با یک Repository مشخص بالا می‌آورد و تا پایان load() صبر می‌کند.
 Future<DashboardProvider> pumpDashboard(
   WidgetTester tester,
   DashboardRepository repository,
 ) async {
   final provider = DashboardProvider(repository);
+  final cafeStatus = CafeStatusProvider(_FakeCafeStatusRepository());
+  addTearDown(cafeStatus.dispose);
+  await cafeStatus.load();
   await tester.pumpWidget(
     ChangeNotifierProvider<DashboardProvider>.value(
       value: provider,
-      child: ChangeNotifierProvider<WaiterCallProvider>(
-        create: (_) => WaiterCallProvider(_FakeWaiterRepository()),
-        child: ChangeNotifierProvider<NavigationProvider>(
-          create: (_) => NavigationProvider(),
-          child: const MaterialApp(
-            home: Directionality(
-                textDirection: TextDirection.rtl, child: DashboardPage()),
+      child: ChangeNotifierProvider<CafeStatusProvider>.value(
+        value: cafeStatus,
+        child: ChangeNotifierProvider<WaiterCallProvider>(
+          create: (_) => WaiterCallProvider(_FakeWaiterRepository()),
+          child: ChangeNotifierProvider<NavigationProvider>(
+            create: (_) => NavigationProvider(),
+            child: const MaterialApp(
+              home: Directionality(
+                  textDirection: TextDirection.rtl, child: DashboardPage()),
+            ),
           ),
         ),
       ),
@@ -102,35 +127,19 @@ Future<DashboardProvider> pumpDashboard(
 void main() {
   final summary = DashboardSummary.fromJson(realResponse());
 
-  testWidgets('renders the money cards from the API numbers', (tester) async {
+  testWidgets('shows the cafe status and hides the money cards',
+      (tester) async {
     await pumpDashboard(tester, _FakeRepository(realResponse()));
 
     expect(find.byType(DashboardStats), findsOneWidget);
-    // فروش / هزینه امروز و ماه — مستقیماً از اعداد سرور
-    expect(
-      find.text(PersianFormat.money(summary.todaySales)),
-      findsAtLeast(1),
-    );
-    expect(
-      find.text(PersianFormat.money(summary.monthSales)),
-      findsAtLeast(1),
-    );
-    expect(
-      find.text(PersianFormat.money(summary.todayExpenses)),
-      findsAtLeast(1),
-    );
-    expect(
-      find.text(PersianFormat.money(summary.monthExpenses)),
-      findsAtLeast(1),
-    );
-    expect(
-      find.text(PersianFormat.money(summary.todayProfit)),
-      findsAtLeast(1),
-    );
-    expect(
-      find.text(PersianFormat.money(summary.monthProfit)),
-      findsAtLeast(1),
-    );
+    expect(find.byType(CafeStatusCard), findsOneWidget);
+    expect(find.text('وضعیت کافه'), findsOneWidget);
+    expect(find.text('کافه بسته است'), findsOneWidget);
+    expect(find.text('باز کردن کافه'), findsOneWidget);
+    // کارت‌های مالی بالای داشبورد حذف شده‌اند؛ فروش/هزینه/سود دیگر اینجا نیست.
+    expect(find.text('فروش'), findsNothing);
+    expect(find.text('هزینه عمومی'), findsNothing);
+    expect(find.text('سود خالص'), findsNothing);
   });
 
   testWidgets('renders today order count and table counts', (tester) async {
@@ -158,7 +167,9 @@ void main() {
       expect(find.text(PersianFormat.digits(t.number)), findsWidgets,
           reason: 'میز ${t.number}');
     }
-    expect(find.text('رزرو شده'), findsWidgets);
+    // این سناریو یک میز فعال دارد و میز رزروشده ندارد.
+    expect(find.text('رزرو شده'), findsNothing);
+    expect(find.text('فعال'), findsWidgets);
   });
 
   testWidgets('renders low stock items with current and minimum',
@@ -173,12 +184,11 @@ void main() {
     expect(find.textContaining('حداقل'), findsWidgets);
   });
 
-  testWidgets('renders at most six recent orders, newest first',
-      (tester) async {
+  testWidgets('renders the recent orders, newest first', (tester) async {
     await pumpDashboard(tester, _FakeRepository(realResponse()));
 
     expect(find.byType(RecentOrdersPanel), findsOneWidget);
-    expect(summary.recentOrders, hasLength(6));
+    expect(summary.recentOrders, hasLength(3));
     for (final o in summary.recentOrders) {
       expect(
           find.text('سفارش ${PersianFormat.digits(o.number)}'), findsOneWidget,
@@ -187,14 +197,7 @@ void main() {
     // سفارش لغوشده هم در لیست اخیر می‌ماند (قرارداد فهرست سفارش‌های پنل)
     expect(summary.recentOrders.first.status.label, isNotEmpty);
     final numbers = summary.recentOrders.map((o) => o.number).toList();
-    expect(numbers, [
-      1014,
-      1013,
-      1012,
-      1011,
-      1010,
-      1009,
-    ]); // جدیدترین اول
+    expect(numbers, [1003, 1002, 1001]); // جدیدترین اول
   });
 
   testWidgets('renders at most five recent expenses, newest first',
@@ -207,12 +210,7 @@ void main() {
       expect(find.text(e.title), findsOneWidget, reason: e.title);
     }
     final newestFirst = summary.recentExpenses.map((e) => e.id).toList();
-    expect(newestFirst, [
-      5,
-      3,
-      2,
-      1,
-    ]);
+    expect(newestFirst, [4, 3, 2, 1]); // جدیدترین اول
   });
 
   testWidgets('empty data shows the empty panels instead of crashing',
@@ -242,7 +240,7 @@ void main() {
 
     expect(provider.state.status.name, 'success');
     expect(provider.state.data!.todaySales, summary.todaySales);
-    expect(provider.state.data!.recentOrders, hasLength(6));
+    expect(provider.state.data!.recentOrders, hasLength(3));
     expect(repo.calls, 1);
   });
 }

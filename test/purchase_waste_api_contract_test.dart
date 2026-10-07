@@ -3,6 +3,7 @@
 // GET /api/v1/inventory/purchases/ و /api/v1/inventory/wastes/ کپی شده‌اند.
 import 'dart:convert';
 
+import 'package:cafe_book_admin/models/enums.dart';
 import 'package:cafe_book_admin/models/purchase.dart';
 import 'package:cafe_book_admin/models/waste.dart';
 import 'package:cafe_book_admin/models/waste_reason.dart';
@@ -10,19 +11,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// پاسخ واقعی POST/GET خرید (Django، inventory/serializers.purchase_dict).
 const String purchasesJson = '''
-[{"id":24,"item_id":9,"item_name":"شیر تستی","unit":"ml","quantity":20.0,
-  "unit_cost":100.0,"total_cost":2000.0,
-  "purchased_at":"2026-09-30T17:31:50.592012+00:00","note":null},
- {"id":22,"item_id":9,"item_name":"شیر تستی","unit":"ml","quantity":5.0,
-  "unit_cost":12500.0,"total_cost":62500.0,
-  "purchased_at":"2026-09-30T17:31:29.813788+00:00","note":"خرید هفتگی"}]
+[{"id":2,"item_id":1,"item_name":"شیر","unit":"ml","quantity":20.0,
+  "unit_cost":100.0,"total_cost":2000.0,"account":"bank",
+  "purchased_at":"2026-10-05T21:51:25.185998+00:00","note":"خرید تستی"}]
 ''';
 
 /// پاسخ واقعی ضایعات (Django، inventory/serializers.waste_dict).
 const String wastesJson = '''
-[{"id":23,"item_id":9,"item_name":"شیر تستی","unit":"ml","quantity":25.0,
-  "unit_cost":12500.0,"total_cost":312500.0,"reason":"spoiled",
-  "wasted_at":"2026-09-30T17:31:39.362838+00:00","note":null}]
+[{"id":3,"item_id":1,"item_name":"شیر","unit":"ml","quantity":25.0,
+  "unit_cost":100.0,"total_cost":2500.0,"reason":"spoiled",
+  "wasted_at":"2026-10-05T21:51:25.188288+00:00","note":"شیر گازدار"}]
 ''';
 
 void main() {
@@ -32,25 +30,38 @@ void main() {
         .toList();
 
     test('maps every field', () {
-      expect(list, hasLength(2));
-      final p = list.last; // خرید «خرید هفتگی»
-      expect(p.id, 22);
-      expect(p.itemId, 9);
-      expect(p.itemName, 'شیر تستی');
-      expect(p.quantity, 5.0);
-      expect(p.unitCost, 12500.0);
-      expect(p.totalCost, 62500.0);
-      expect(p.note, 'خرید هفتگی');
+      expect(list, hasLength(1));
+      final p = list.single;
+      expect(p.id, 2);
+      expect(p.itemId, 1);
+      expect(p.itemName, 'شیر');
+      expect(p.unit, BaseUnit.milliliter);
+      expect(p.quantity, 20.0);
+      expect(p.unitCost, 100.0);
+      expect(p.totalCost, 2000.0);
+      expect(p.note, 'خرید تستی');
+      // حسابی که پول خرید از آن کم شده، نه روش پرداخت مشتری
+      expect(p.account, CashAccount.bank);
       expect(
         p.purchasedAt.isAtSameMomentAs(
-          DateTime.parse('2026-09-30T17:31:29.813788+00:00'),
+          DateTime.parse('2026-10-05T21:51:25.185998+00:00'),
         ),
         isTrue,
       );
     });
 
-    test('null note is accepted', () {
-      expect(list.first.note, isNull);
+    test('a missing account degrades to cash instead of crashing', () {
+      final p = Purchase.fromJson({
+        'id': 1,
+        'item_id': 1,
+        'item_name': 'شیر',
+        'unit': 'ml',
+        'quantity': 1.0,
+        'unit_cost': 1.0,
+        'purchased_at': '2026-10-05T21:51:25+00:00',
+      });
+      expect(p.account, CashAccount.cash);
+      expect(p.note, isNull);
     });
 
     test('round-trips through toJson', () {
@@ -68,17 +79,17 @@ void main() {
 
     test('maps every field', () {
       final w = list.single;
-      expect(w.id, 23);
-      expect(w.itemId, 9);
-      expect(w.itemName, 'شیر تستی');
+      expect(w.id, 3);
+      expect(w.itemId, 1);
+      expect(w.itemName, 'شیر');
       expect(w.quantity, 25.0); // مثبت، حتی اگر در دفتر حرکت منفی ذخیره شود
-      expect(w.unitCost, 12500.0);
-      expect(w.totalCost, 312500.0);
+      expect(w.unitCost, 100.0);
+      expect(w.totalCost, 2500.0);
       expect(w.reason, WasteReason.spoiled);
-      expect(w.note, isNull);
+      expect(w.note, 'شیر گازدار');
       expect(
         w.wastedAt.isAtSameMomentAs(
-          DateTime.parse('2026-09-30T17:31:39.362838+00:00'),
+          DateTime.parse('2026-10-05T21:51:25.188288+00:00'),
         ),
         isTrue,
       );
@@ -91,7 +102,9 @@ void main() {
     });
   });
 
-  group('draft payload matches what ApiPurchaseRepository/ApiWasteRepository POST', () {
+  group(
+      'draft payload matches what ApiPurchaseRepository/ApiWasteRepository POST',
+      () {
     test('purchase draft', () {
       final draft = PurchaseDraft(
         itemId: 9,

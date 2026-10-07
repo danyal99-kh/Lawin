@@ -57,4 +57,21 @@ class MockAccountingRepository implements AccountingRepository {
       return Failure(AppFailure.unknown(e));
     }
   }
+
+  /// در Mock همیشه سالم است: دفتر از همان داده‌هایی ساخته می‌شود که خودِ
+  /// برنامه می‌بیند، پس ناهماهنگی ممکن نیست. ارزش واقعی این تشخیص روی
+  /// بک‌اند است که دفتر و سفارش‌ها/انبارِ واقعی را با هم می‌سنجد.
+  @override
+  Future<Result<LedgerVerification>> verifyLedger() async {
+    try {
+      await _latency();
+      return const Success(LedgerVerification(
+        ok: true,
+        problems: [],
+        warnings: [],
+      ));
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
+    }
+  }
 }

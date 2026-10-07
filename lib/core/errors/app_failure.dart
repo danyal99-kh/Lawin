@@ -11,6 +11,8 @@ enum FailureType {
   printer,
   notFound,
   conflict,
+  security,
+  securityNotConfigured,
   unknown,
 }
 
@@ -48,6 +50,15 @@ class AppFailure implements Exception {
   factory AppFailure.notFound() => const AppFailure(FailureType.notFound);
   factory AppFailure.conflict([String? message]) =>
       AppFailure(FailureType.conflict, message: message);
+
+  /// خطای «رمز امنیتی اشتباه است» (کد `security_denied` در Backend).
+  factory AppFailure.security([String? message]) =>
+      AppFailure(FailureType.security, message: message);
+
+  /// رمز امنیتی هنوز برای اولین بار تنظیم نشده است (کد `security_not_configured`).
+  factory AppFailure.securityNotConfigured([String? message]) =>
+      AppFailure(FailureType.securityNotConfigured, message: message);
+
   factory AppFailure.unknown([Object? details]) =>
       AppFailure(FailureType.unknown, details: details);
 
@@ -78,6 +89,10 @@ class AppFailure implements Exception {
         return 'مورد درخواستی پیدا نشد.';
       case FailureType.conflict:
         return 'این مورد قبلاً تغییر کرده است. صفحه را تازه‌سازی کنید.';
+      case FailureType.security:
+        return 'رمز امنیتی صحیح نیست.';
+      case FailureType.securityNotConfigured:
+        return 'رمز امنیتی هنوز تنظیم نشده است.';
       case FailureType.unknown:
         return 'خطای غیرمنتظره‌ای رخ داد.';
     }

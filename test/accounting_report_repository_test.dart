@@ -59,6 +59,29 @@ final String _okLedger = jsonEncode([
   },
 ]);
 
+/// پاسخ واقعی بازرسی دفتر با ایراد (Django، core/ledger.py health).
+/// کدها عیناً همان رشته‌هایی هستند که بک‌اند می‌فرستد.
+final String _okVerification = jsonEncode({
+  'ok': false,
+  'problems': [
+    {
+      'code': 'order_sale_mismatch',
+      'order_id': '1014',
+      'detail': 'ورودی فروش 0 ≠ مبلغ سفارش 220000',
+    },
+    {
+      'code': 'inventory_mismatch',
+      'detail': 'موجودی دفتر 50000 ≠ ارزش کالا 0',
+    },
+  ],
+  'warnings': [
+    {
+      'code': 'negative_balance',
+      'detail': 'مانده‌ی cash منفی است',
+    },
+  ],
+});
+
 void main() {
   /// یک مشتری ساختگی که آخرین درخواست را نگه می‌دارد و پاسخ تعیین‌شده
   /// را برمی‌گرداند.
@@ -113,6 +136,53 @@ void main() {
       final result = await ApiAccountingRepository(api).getEntries();
       expect(result.failureOrNull!.type, FailureType.unauthorized);
       expect(fired, 1);
+    });
+
+    test('verifyLedger GETs the verify endpoint and maps problems', () async {
+      final repo = ApiAccountingRepository(
+        ApiClient(_FakeTokenStorage(),
+            client: clientReturning(200, _okVerification)),
+      );
+
+      final result = await repo.verifyLedger();
+      expect(result.failureOrNull, isNull);
+      final v = result.dataOrNull!;
+      expect(v.ok, isFalse);
+      expect(v.problems, hasLength(2));
+      expect(v.problems.first.code, 'order_sale_mismatch');
+      expect(v.problems.first.detail, contains('220000'));
+      expect(v.problems.map((i) => i.code),
+          containsAll(['order_sale_mismatch', 'inventory_mismatch']));
+      expect(v.warnings.single.code, 'negative_balance');
+      expect(v.hasWarnings, isTrue);
+
+      expect(lastRequest.path, '/api/v1/accounting/verify/');
+      expect(lastRequest.query, isEmpty);
+      expect(lastHeaders['Authorization'], 'Token test-token');
+    });
+
+    test('a clean ledger is ok with empty problems and warnings', () async {
+      final repo = ApiAccountingRepository(
+        ApiClient(_FakeTokenStorage(),
+            client: clientReturning(
+                200, jsonEncode({'ok': true, 'problems': [], 'warnings': []}))),
+      );
+      final v = (await repo.verifyLedger()).dataOrNull!;
+      expect(v.ok, isTrue);
+      expect(v.problems, isEmpty);
+      expect(v.warnings, isEmpty);
+    });
+
+    test('a body that is not the verify shape is a failure, not a crash',
+        () async {
+      // «ok» باید bool باشد؛ یک رشته یعنی سرور چیزی غیرمنتظره برگردانده.
+      final repo = ApiAccountingRepository(
+        ApiClient(_FakeTokenStorage(),
+            client: clientReturning(200, jsonEncode({'ok': 'yes'}))),
+      );
+      final result = await repo.verifyLedger();
+      expect(result.failureOrNull, isNotNull);
+      expect(result.dataOrNull, isNull);
     });
   });
 
@@ -182,10 +252,17 @@ void main() {
           }
         ],
         'expenses_by_category': [
-          {'category': 'raw_materials', 'amount': 1070000}
+          {'category': 'supplies', 'amount': 1070000}
         ],
         'daily_points': [
-          {'date': '2026-10-01', 'sales': 95000, 'expenses': 1000000}
+          {
+            'date': '2026-10-01',
+            'sales': 95000,
+            'expenses': 1000000,
+            'cogs': 0,
+            'waste': 0,
+            'profit': -905000
+          }
         ],
       });
       final repo = ApiReportRepository(
@@ -193,7 +270,8 @@ void main() {
 
       final report = (await repo.getReport(ReportPeriod.month)).dataOrNull!;
       expect(report.totalSales, 3980000);
-      expect(report.totalProfit, 1910000);
+      // سود از خود سرور خوانده می‌شود؛ صفر یعنی فیلد در پاسخ نبوده.
+      expect(report.netProfit, 0);
       expect(report.topProducts.single.productName, 'کیک');
       expect(report.expensesByCategory.single.amount, 1070000);
       expect(report.dailyPoints.single.profit, -905000);

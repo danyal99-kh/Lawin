@@ -95,7 +95,32 @@ class MockReportRepository implements ReportRepository {
         start: start,
         end: end,
         totalSales: totalSales,
+        // Mock تاریخچه‌ی خرید/مصرف/ضایعات ندارد، پس این‌ها صفر می‌مانند؛ سود
+        // ناخالص برابر فروش و سود خالص برابر فروش منهای هزینه‌های عمومی.
+        totalCogs: 0,
+        grossProfit: totalSales,
         totalExpenses: totalExpenses,
+        totalWaste: 0,
+        netProfit: totalSales - totalExpenses,
+        totalPurchases: 0,
+        inventoryValue: _db.inventoryItems
+            .fold<int>(0, (s, i) => s + (i.currentStock * i.unitCost).round()),
+        paymentMethods: [
+          PaymentMethodTotal(
+            method: PaymentMethod.cash,
+            label: PaymentMethod.cash.label,
+            amount: totalSales,
+          )
+        ],
+        paymentsTotal: totalSales,
+        cashFlow: CashFlow(
+          cash: CashFlowPeriod(
+              opening: 0, inflow: totalSales, outflow: totalExpenses),
+          bank: const CashFlowPeriod(opening: 0, inflow: 0, outflow: 0),
+          opening: 0,
+          inflow: totalSales,
+          outflow: totalExpenses,
+        ),
         orderCount: paidOrders.length,
         itemsSoldCount: itemsSold,
         topProducts: topProducts.take(10).toList(),
@@ -120,7 +145,14 @@ class MockReportRepository implements ReportRepository {
         .cast<dynamic>()
         .where((e) => DateRanges.inRange(e.date, dayStart, dayEnd))
         .fold<int>(0, (s, e) => s + (e.amount as int));
-    return DailyPoint(date: dayStart, sales: sales, expenses: exp);
+    return DailyPoint(
+      date: dayStart,
+      sales: sales,
+      expenses: exp,
+      cogs: 0,
+      waste: 0,
+      profit: sales - exp,
+    );
   }
 }
 

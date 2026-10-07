@@ -84,4 +84,88 @@ class MockWasteRepository implements WasteRepository {
       return Failure(AppFailure.unknown(e));
     }
   }
+
+  /// موجودی کالا را به‌روز می‌کند. [delta] مثبت یعنی به انبار برمی‌گردد.
+  void _applyStock(int index, double delta) {
+    final item = _db.inventoryItems[index];
+    _db.inventoryItems[index] = InventoryItem(
+      id: item.id,
+      name: item.name,
+      unit: item.unit,
+      currentStock: item.currentStock + delta,
+      minStock: item.minStock,
+      unitCost: item.unitCost,
+      description: item.description,
+    );
+  }
+
+  @override
+  Future<Result<Waste>> update(int id, WasteDraft draft) async {
+    try {
+      await _latency();
+      final d = draft.normalized();
+      final index = _wastes.indexWhere((w) => w.id == id);
+      if (index == -1) return Failure(AppFailure.notFound());
+      if (d.quantity <= 0) {
+        return Failure(
+            AppFailure.validation('مقدار ضایعات باید بیشتر از صفر باشد.'));
+      }
+      final old = _wastes[index];
+      final itemIndex =
+          _db.inventoryItems.indexWhere((i) => i.id == old.itemId);
+      if (itemIndex == -1) {
+        return Failure(AppFailure.validation('کالای انتخاب‌شده وجود ندارد.'));
+      }
+      final item = _db.inventoryItems[itemIndex];
+      // کم کردن مقدار ضایعات یعنی آن مقدار به انبار برمی‌گردد؛ پس موجودی
+      // کافی باید داشته باشیم — دقیقاً مثل بک‌اند.
+      final returning = old.quantity - d.quantity;
+      if (item.currentStock + returning < 0) {
+        return Failure(AppFailure.insufficientStock(item.name));
+      }
+      final updated = Waste(
+        id: old.id,
+        itemId: old.itemId,
+        itemName: old.itemName,
+        unit: old.unit,
+        quantity: d.quantity,
+        unitCost: item.unitCost,
+        reason: d.reason,
+        wastedAt: old.wastedAt,
+        note: d.note,
+      );
+      _wastes[index] = updated;
+      _applyStock(itemIndex, returning);
+      return Success(updated);
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
+    }
+  }
+
+  @override
+  Future<Result<void>> delete(int id) async {
+    try {
+      await _latency();
+      final index = _wastes.indexWhere((w) => w.id == id);
+      if (index == -1) return Failure(AppFailure.notFound());
+      final removed = _wastes.removeAt(index);
+      final itemIndex =
+          _db.inventoryItems.indexWhere((i) => i.id == removed.itemId);
+      if (itemIndex != -1) {
+        final item = _db.inventoryItems[itemIndex];
+        _db.inventoryItems[itemIndex] = InventoryItem(
+          id: item.id,
+          name: item.name,
+          unit: item.unit,
+          currentStock: item.currentStock + removed.quantity,
+          minStock: item.minStock,
+          unitCost: item.unitCost,
+          description: item.description,
+        );
+      }
+      return const Success(null);
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
+    }
+  }
 }

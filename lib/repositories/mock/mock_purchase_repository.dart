@@ -88,22 +88,101 @@ class MockPurchaseRepository implements PurchaseRepository {
         quantity: d.quantity,
         unitCost: d.unitCost,
         purchasedAt: DateTime.now(),
+        account: d.account,
         note: d.note,
       );
       _purchases.add(purchase);
-
-      // موجودی افزایش و قیمت خرید با آخرین خرید به‌روز می‌شود.
-      _db.inventoryItems[index] = InventoryItem(
-        id: item.id,
-        name: item.name,
-        unit: item.unit,
-        currentStock: item.currentStock + d.quantity,
-        minStock: item.minStock,
-        unitCost: d.unitCost,
-        description: item.description,
-      );
-
+      _applyStock(index, d.quantity, d.unitCost);
       return Success(purchase);
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
+    }
+  }
+
+  /// موجودی را به‌روز می‌کند: مقدار خریداری‌شده اضافه می‌شود و قیمت خرید با
+  /// آخرین خرید جایگزین می‌شود (میانگین نمی‌گیریم).
+  void _applyStock(int index, double quantity, double unitCost) {
+    final item = _db.inventoryItems[index];
+    _db.inventoryItems[index] = InventoryItem(
+      id: item.id,
+      name: item.name,
+      unit: item.unit,
+      currentStock: item.currentStock + quantity,
+      minStock: item.minStock,
+      unitCost: unitCost,
+      description: item.description,
+    );
+  }
+
+  @override
+  Future<Result<Purchase>> update(int id, PurchaseDraft draft) async {
+    try {
+      await _latency();
+      final d = draft.normalized();
+      final index = _purchases.indexWhere((p) => p.id == id);
+      if (index == -1) return Failure(AppFailure.notFound());
+      if (d.quantity <= 0) {
+        return Failure(
+            AppFailure.validation('مقدار خرید باید بیشتر از صفر باشد.'));
+      }
+      if (d.unitCost < 0) {
+        return Failure(AppFailure.validation('قیمت خرید واردشده معتبر نیست.'));
+      }
+      final old = _purchases[index];
+      final delta = d.quantity - old.quantity;
+      final itemIndex =
+          _db.inventoryItems.indexWhere((i) => i.id == old.itemId);
+      final item = _db.inventoryItems[itemIndex];
+      // مثل بک‌اند: کم کردن مقدار خرید نباید موجودی را منفی کند.
+      if (item.currentStock + delta < 0) {
+        return Failure(AppFailure.insufficientStock(item.name));
+      }
+      final updated = Purchase(
+        id: old.id,
+        itemId: old.itemId,
+        itemName: old.itemName,
+        unit: old.unit,
+        quantity: d.quantity,
+        unitCost: d.unitCost,
+        purchasedAt: old.purchasedAt,
+        account: d.account,
+        note: d.note,
+      );
+      _purchases[index] = updated;
+      _applyStock(itemIndex, delta, d.unitCost);
+      return Success(updated);
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
+    }
+  }
+
+  @override
+  Future<Result<void>> delete(int id) async {
+    try {
+      await _latency();
+      final index = _purchases.indexWhere((p) => p.id == id);
+      if (index == -1) return Failure(AppFailure.notFound());
+      final removed = _purchases.removeAt(index);
+      final itemIndex =
+          _db.inventoryItems.indexWhere((i) => i.id == removed.itemId);
+      if (itemIndex != -1) {
+        final item = _db.inventoryItems[itemIndex];
+        if (item.currentStock < removed.quantity) {
+          // موجودی را دست‌نخورده نگه می‌داریم و رکورد را برمی‌گردانیم.
+          _purchases.insert(index, removed);
+          return Failure(AppFailure.insufficientStock(item.name));
+        }
+        _db.inventoryItems[itemIndex] = InventoryItem(
+          id: item.id,
+          name: item.name,
+          unit: item.unit,
+          currentStock: item.currentStock - removed.quantity,
+          minStock: item.minStock,
+          unitCost: item.unitCost,
+          description: item.description,
+        );
+      }
+      return const Success(null);
     } catch (e) {
       return Failure(AppFailure.unknown(e));
     }

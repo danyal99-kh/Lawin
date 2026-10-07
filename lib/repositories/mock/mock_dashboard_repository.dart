@@ -36,6 +36,11 @@ class MockDashboardRepository implements DashboardRepository {
         .where((e) => DateRanges.inRange(e.date, from, dayEnd))
         .fold(0, (s, e) => s + e.amount);
 
+    // ضایعات و بهای تمام‌شده را Mock نمی‌تواند حساب کند چون تاریخچه‌ی
+    // مصرف/ضایعات در MockDatabase نیست (هر repository تاریخچه‌ی خودش را جدا
+    // نگه می‌دارد) — پس صفر می‌مانند و سود ناخالص برابر سود خالص می‌شود.
+    // برای داده‌ی واقعی، بک‌اند از دفتر مرکزی این اعداد را می‌فرستد.
+
     final todayOrders = _db.orders.where((o) =>
         o.status != OrderStatus.cancelled &&
         DateRanges.inRange(o.createdAt, dayStart, dayEnd));
@@ -54,6 +59,13 @@ class MockDashboardRepository implements DashboardRepository {
       monthSales: sales(monthStart),
       todayExpenses: expenses(dayStart),
       monthExpenses: expenses(monthStart),
+      // در Mock صفر است؛ توضیح بالای این بخش را ببینید.
+      todayWaste: 0,
+      monthWaste: 0,
+      todayProfit: sales(dayStart) - expenses(dayStart),
+      monthProfit: sales(monthStart) - expenses(monthStart),
+      todayGrossProfit: sales(dayStart),
+      monthGrossProfit: sales(monthStart),
       todayOrderCount: todayOrders.length,
       tables: List.unmodifiable(_db.tables),
       lowStockItems: lowStock,

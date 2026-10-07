@@ -25,7 +25,25 @@ class ApiPurchaseRepository implements PurchaseRepository {
           'item_id': draft.itemId,
           'quantity': draft.quantity,
           'unit_cost': draft.unitCost,
+          'account': draft.account.apiValue,
           'note': draft.note ?? '',
         },
       );
+
+  @override
+  Future<Result<Purchase>> update(int id, PurchaseDraft draft) => _api.patch(
+        ApiEndpoints.purchase(id),
+        _purchase,
+        // `item_id` عمداً نمی‌فرستیم: جابه‌جا کردن یک خرید به کالای دیگر،
+        // تاریخچه‌ی انبار دو کالا را قاطی می‌کند و بک‌اند هم آن را نمی‌پذیرد.
+        body: {
+          'quantity': draft.quantity,
+          'unit_cost': draft.unitCost,
+          'account': draft.account.apiValue,
+          'note': draft.note ?? '',
+        },
+      );
+
+  @override
+  Future<Result<void>> delete(int id) => _api.delete(ApiEndpoints.purchase(id));
 }

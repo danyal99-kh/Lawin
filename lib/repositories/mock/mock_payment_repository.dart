@@ -2,6 +2,7 @@
 import '../../core/errors/app_failure.dart';
 import '../../core/errors/result.dart';
 import '../../models/enums.dart';
+import '../../models/order.dart';
 import '../../models/table_overview.dart';
 import '../payment_repository.dart';
 import 'mock_database.dart';
@@ -24,7 +25,7 @@ class MockPaymentRepository implements PaymentRepository {
 
   @override
   Future<Result<TableOverview>> pay(int tableId,
-      {required PaymentMethod method}) async {
+      {required PaymentMethod method, List<PaymentShare>? shares}) async {
     try {
       await _latency();
       final tableIndex = _db.tables.indexWhere((t) => t.id == tableId);
@@ -38,6 +39,17 @@ class MockPaymentRepository implements PaymentRepository {
             AppFailure.conflict('سفارش بازی برای پرداخت وجود ندارد.'));
       }
 
+      // پرداخت چندروشی: مجموع قسط‌ها باید با مبلغ کل صورتحساب بخواند،
+      // وگرنه دفتر حسابداری بی‌خوان می‌ماند. مثل بک‌اند بررسی می‌کنیم.
+      final total = openOrders.fold<int>(0, (s, o) => s + o.total);
+      if (shares != null && shares.isNotEmpty) {
+        final sum = shares.fold<int>(0, (s, sh) => s + sh.amount);
+        if (sum != total) {
+          return Failure(AppFailure.validation(
+              'مجموع پرداخت‌های چندروشی ($sum) با مبلغ صورتحساب ($total) برابر نیست.'));
+        }
+      }
+
       final now = DateTime.now();
       // قانون ۲: پرداخت صورتحساب، نشست را می‌بندد و میز را آزاد می‌کند.
       final closedSession = _sessions.close(tableId, now);
@@ -48,10 +60,15 @@ class MockPaymentRepository implements PaymentRepository {
       for (final order in openOrders) {
         final index = _db.orders.indexWhere((o) => o.id == order.id);
         if (index == -1) continue;
+        // در پرداخت چندروشی، روشِ غالب قسط اول به‌عنوان خلاصه ثبت می‌شود؛
+        // در بک‌اند هم `payment_method` خلاصه است و جزئیات در جدول Payment است.
+        final primary = (shares != null && shares.isNotEmpty)
+            ? shares.first.method
+            : method;
         _db.orders[index] = order.copyWith(
           status: OrderStatus.paid,
           paymentStatus: PaymentStatus.paid,
-          paymentMethod: method,
+          paymentMethod: primary,
           paidAt: now,
         );
       }
@@ -59,6 +76,30 @@ class MockPaymentRepository implements PaymentRepository {
       return Success(_tables.overviewFor(_db.tables[tableIndex]));
     } catch (e) {
       return Failure(AppFailure.paymentFailed());
+    }
+  }
+
+  @override
+  Future<Result<Order>> refund(String orderId) async {
+    try {
+      await _latency();
+      final index = _db.orders.indexWhere((o) => o.id == orderId);
+      if (index == -1) return Failure(AppFailure.notFound());
+      final order = _db.orders[index];
+      if (order.status != OrderStatus.paid) {
+        return Failure(
+            AppFailure.conflict('فقط سفارش پرداخت‌شده را می‌توان برگشت داد.'));
+      }
+      final refunded = order.copyWith(
+        status: OrderStatus.cancelled,
+        paymentStatus: PaymentStatus.refunded,
+        clearPaymentMethod: true,
+        clearPaidAt: true,
+      );
+      _db.orders[index] = refunded;
+      return Success(refunded);
+    } catch (e) {
+      return Failure(AppFailure.unknown(e));
     }
   }
 }

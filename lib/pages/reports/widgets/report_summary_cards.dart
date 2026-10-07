@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/persian_format.dart';
 import '../../../models/report.dart';
 import '../../../responsive/adaptive_grid.dart';
 import '../../../widgets/stat_card.dart';
 import '../../../widgets/status_chip.dart';
 
-/// کارت‌های شمارشی خلاصه‌ی گزارش: فروش، هزینه، سود، تعداد و میانگین سفارش.
+/// کارت‌های شمارشی خلاصه‌ی گزارش.
+///
+/// ارقام از دفتر حسابداری بک‌اند خوانده می‌شوند و اینجا دوباره حساب نمی‌شوند.
+/// «سود» یعنی [SalesReport.netProfit] (پس از کسر بهای تمام‌شده، هزینه‌های
+/// عمومی و ضایعات) و «سود ناخالص» پیش از آن‌هاست.
 class ReportSummaryCards extends StatelessWidget {
   const ReportSummaryCards({super.key, required this.report});
 
@@ -28,16 +31,42 @@ class ReportSummaryCards extends StatelessWidget {
           tone: StatusTone.success,
         ),
         MetricCard(
-          label: 'هزینه',
-          value: PersianFormat.money(report.totalExpenses),
+          label: 'بهای تمام‌شده',
+          value: PersianFormat.money(report.totalCogs),
+          icon: Icons.inventory_2_outlined,
+          tone: StatusTone.warning,
+        ),
+        MetricCard(
+          label: 'هزینه و ضایعات',
+          value: PersianFormat.money(report.totalExpenses + report.totalWaste),
           icon: Icons.south_west,
           tone: StatusTone.warning,
         ),
         MetricCard(
-          label: 'سود',
-          value: PersianFormat.money(report.totalProfit),
+          label: 'سود خالص',
+          value: PersianFormat.money(report.netProfit),
           icon: Icons.account_balance_wallet_outlined,
-          tone: report.totalProfit < 0 ? StatusTone.danger : StatusTone.info,
+          tone: report.netProfit < 0 ? StatusTone.danger : StatusTone.info,
+        ),
+        MetricCard(
+          label: 'سود ناخالص',
+          value: PersianFormat.money(report.grossProfit),
+          icon: Icons.show_chart,
+          tone: StatusTone.info,
+        ),
+        MetricCard(
+          label: 'ارزش انبار',
+          value: PersianFormat.money(report.inventoryValue),
+          icon: Icons.warehouse_outlined,
+          tone: StatusTone.neutral,
+        ),
+        MetricCard(
+          label: 'مانده نقدی',
+          value: PersianFormat.money(report.closingBalance),
+          icon: Icons.account_balance_outlined,
+          tone: report.closingBalance < 0
+              ? StatusTone.danger
+              : StatusTone.success,
         ),
         MetricCard(
           label: 'تعداد سفارش',

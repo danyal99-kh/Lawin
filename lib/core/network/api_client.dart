@@ -11,11 +11,40 @@ import 'token_storage.dart';
 
 /// کلاینت HTTP مرکزی: Token، Timeout و تبدیل خطای Django به AppFailure.
 class ApiClient {
-  ApiClient(this._tokens, {http.Client? client})
-      : _http = client ?? http.Client();
+  ApiClient(
+    this._tokens, {
+    http.Client? client,
+    this.securityTicket,
+    this.onSecurityTicket,
+  }) : _http = client ?? http.Client();
+
+  /// نام هدری که بلیت رمز امنیتی در آن به Backend فرستاده و از آن دریافت می‌شود.
+  static const String securityTicketHeader = 'X-Security-Ticket';
 
   final TokenStorage _tokens;
   final http.Client _http;
+
+  /// توکن احراز هویتِ نشستِ فعلی (از حافظه). اگر null برگرداند، از
+  /// `TokenStorage` (fallback) خوانده می‌شود.
+  ///
+  /// این فیلد توسط `AuthProvider` در سازنده‌اش وصل می‌شود تا همه‌ی درخواست‌ها
+  /// بدون وابستگی به دسترسی پیرامونی به رسانه‌ی امن، توکنِ نشستِ جاری را
+  /// بفرستند. روی پلتفرم‌هایی که حافظه‌ی امن خاموش است (مثلاً دسکتاپ بدون
+  /// secret service)، نوشتن/خواندن امن بی‌صدا شکست می‌خورد؛ استفاده از حافظه
+  /// کاریِ نشست، لاگین و داشبورد را همچنان کار می‌کند.
+  String? Function()? authToken;
+
+  /// بلیت رمز امنیتی فعلی (برای مسیرهای حسابداری/گزارش‌ها). اگر null برگرداند
+  /// هدر فرستاده نمی‌شود. هر بار که درخواست ساخته می‌شود خوانده می‌شود.
+  ///
+  /// این دو فیلد «مقدار اولیه» دارند ولی توسط گیت امنیتی بعد از ساخته شدن
+  /// (در AppProviders) وصل می‌شوند؛ به این ترتیب درخواست‌های قبل از وجود گیت
+  /// (مثلاً باطل‌کردن توکن هنگام شروع برنامه) بدون بلیت می‌مانند و کرش نمی‌کنند.
+  String? Function()? securityTicket;
+
+  /// هرگاه پاسخ سرور بلیت تازه‌ای در هدر بلیت برگرداند (نشست لغزان) صدا زده
+  /// می‌شود تا Provider امنیتی آن را نگه دارد.
+  void Function(String)? onSecurityTicket;
 
   /// وقتی 401 دریافت شود صدا زده می‌شود (مثلاً رفتن به صفحه‌ی ورود).
   void Function()? onUnauthorized;
@@ -26,11 +55,14 @@ class ApiClient {
   }
 
   Future<Map<String, String>> _headers({bool json = true}) async {
-    final token = await _tokens.read();
+    final token = authToken?.call() ?? await _tokens.read();
+    final security = securityTicket?.call();
     return {
       if (json) 'Content-Type': 'application/json',
       'Accept': 'application/json',
       if (token != null) 'Authorization': 'Token $token',
+      if (security != null && security.isNotEmpty)
+        securityTicketHeader: security,
     };
   }
 
@@ -41,6 +73,7 @@ class ApiClient {
     try {
       final res =
           await call(await _headers()).timeout(AppConfig.requestTimeout);
+      _consumeSecurityHeader(res);
       final body = _decodeBody(res);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         return Success(parse(body));
@@ -59,6 +92,23 @@ class ApiClient {
     } catch (e) {
       return Failure(AppFailure.unknown(e));
     }
+  }
+
+  /// اگر پاسخ، بلیت تازه‌ای برگرداند، آن را به لایه‌ی امنیتی می‌دهد.
+  void _consumeSecurityHeader(http.Response res) {
+    final onNew = onSecurityTicket;
+    if (onNew == null) return;
+    final value = _headerValue(res.headers, securityTicketHeader);
+    if (value != null && value.isNotEmpty) onNew(value);
+  }
+
+  /// نام هدرها در بسته‌ی http ممکن است حروف‌بزرگ/کوچک متفاوتی داشته باشند؛
+  /// این جستجو به حروف بزرگ/کوچک حساس نیست.
+  static String? _headerValue(Map<String, String> headers, String name) {
+    for (final entry in headers.entries) {
+      if (entry.key.toLowerCase() == name.toLowerCase()) return entry.value;
+    }
+    return null;
   }
 
   /// بدنه‌ی پاسخ را به JSON تبدیل می‌کند، اما اگر سرور HTML برگرداند
@@ -94,6 +144,10 @@ class ApiClient {
         return AppFailure.unauthorized(message);
       case 'validation':
         return AppFailure.validation(message);
+      case 'security_denied':
+        return AppFailure.security(message);
+      case 'security_not_configured':
+        return AppFailure.securityNotConfigured(message);
     }
     if (status == 401 || status == 403) return AppFailure.unauthorized(message);
     if (status == 404) return AppFailure.notFound();
@@ -163,6 +217,7 @@ class ApiClient {
       }
       final streamedRes = await request.send().timeout(AppConfig.requestTimeout);
       final res = await http.Response.fromStream(streamedRes);
+      _consumeSecurityHeader(res);
       final body =
           res.bodyBytes.isEmpty ? null : jsonDecode(utf8.decode(res.bodyBytes));
       if (res.statusCode >= 200 && res.statusCode < 300) {

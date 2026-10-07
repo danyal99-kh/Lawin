@@ -2,6 +2,7 @@ import 'package:cafe_book_admin/core/network/api_client.dart';
 import 'package:cafe_book_admin/core/network/token_storage.dart';
 import 'package:cafe_book_admin/providers/accounting_provider.dart';
 import 'package:cafe_book_admin/providers/auth_provider.dart';
+import 'package:cafe_book_admin/providers/cafe_status_provider.dart';
 import 'package:cafe_book_admin/providers/dashboard_provider.dart';
 import 'package:cafe_book_admin/providers/expense_provider.dart';
 import 'package:cafe_book_admin/providers/incoming_orders_provider.dart';
@@ -10,11 +11,13 @@ import 'package:cafe_book_admin/providers/order_provider.dart';
 import 'package:cafe_book_admin/providers/purchase_provider.dart';
 import 'package:cafe_book_admin/providers/recipe_provider.dart';
 import 'package:cafe_book_admin/providers/report_provider.dart';
+import 'package:cafe_book_admin/providers/security_gate_provider.dart';
 import 'package:cafe_book_admin/providers/settings_provider.dart';
 import 'package:cafe_book_admin/providers/waiter_call_provider.dart';
 import 'package:cafe_book_admin/providers/waste_provider.dart';
 import 'package:cafe_book_admin/repositories/accounting_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_accounting_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_cafe_status_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_category_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_dashboard_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_expense_repository.dart';
@@ -25,6 +28,7 @@ import 'package:cafe_book_admin/repositories/api/api_product_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_report_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_security_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_settings_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_table_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_waste_repository.dart';
@@ -39,6 +43,7 @@ import 'package:cafe_book_admin/repositories/mock/mock_payment_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_report_repository.dart';
+import 'package:cafe_book_admin/repositories/mock/mock_security_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_settings_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_waiter_call_repository.dart';
 import 'package:cafe_book_admin/repositories/mock/mock_waste_repository.dart';
@@ -47,6 +52,7 @@ import 'package:cafe_book_admin/repositories/payment_repository.dart';
 import 'package:cafe_book_admin/repositories/purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/recipe_repository.dart';
 import 'package:cafe_book_admin/repositories/report_repository.dart';
+import 'package:cafe_book_admin/repositories/security_repository.dart';
 import 'package:cafe_book_admin/repositories/settings_repository.dart';
 import 'package:cafe_book_admin/repositories/waiter_call_repository.dart';
 import 'package:cafe_book_admin/repositories/waste_repository.dart';
@@ -55,9 +61,11 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
 import '../core/config/app_config.dart';
+import '../repositories/cafe_status_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/dashboard_repository.dart';
 import '../repositories/product_repository.dart';
+import '../repositories/mock/mock_cafe_status_repository.dart';
 import '../repositories/mock/mock_category_repository.dart';
 import '../repositories/mock/mock_dashboard_repository.dart';
 import '../repositories/mock/mock_database.dart';
@@ -89,14 +97,26 @@ class AppProviders extends StatelessWidget {
     return MultiProvider(
       providers: [
         // ---------- زیرساخت شبکه و احراز هویت ----------
-        Provider<TokenStorage>(create: (_) => PrefsTokenStorage()),
-        Provider<ApiClient>(
-          create: (ctx) => ApiClient(ctx.read<TokenStorage>()),
-        ),
+        Provider<TokenStorage>(create: (_) => SecureTokenStorage()),
+        Provider<ApiClient>(create: (ctx) => ApiClient(ctx.read<TokenStorage>())),
         ChangeNotifierProvider(
           create: (ctx) =>
               AuthProvider(ctx.read<ApiClient>(), ctx.read<TokenStorage>())
                 ..restore(),
+        ),
+
+        // ---------- گیت رمز امنیتی مالی ----------
+        Provider<SecurityRepository>(
+          create: (ctx) => AppConfig.useMock
+              ? MockSecurityRepository()
+              : ApiSecurityRepository(ctx.read<ApiClient>()),
+        ),
+        ChangeNotifierProvider<SecurityGateProvider>(
+          create: (ctx) => SecurityGateProvider(
+            auth: ctx.read<AuthProvider>(),
+            repository: ctx.read<SecurityRepository>(),
+            api: ctx.read<ApiClient>(),
+          ),
         ),
 
         // ---------- داده‌ی Mock (فقط وقتی USE_MOCK=true واقعاً استفاده می‌شود) ----------
@@ -113,6 +133,17 @@ class AppProviders extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (ctx) => DashboardProvider(ctx.read<DashboardRepository>()),
+        ),
+
+        // ---------- وضعیت کافه (باز/بسته) ----------
+        Provider<CafeStatusRepository>(
+          create: (ctx) => AppConfig.useMock
+              ? MockCafeStatusRepository()
+              : ApiCafeStatusRepository(ctx.read<ApiClient>()),
+        ),
+        ChangeNotifierProvider<CafeStatusProvider>(
+          create: (ctx) =>
+              CafeStatusProvider(ctx.read<CafeStatusRepository>()),
         ),
 
         // ---------- Tables ----------
@@ -217,8 +248,12 @@ class AppProviders extends StatelessWidget {
           create: (ctx) => ExpenseProvider(ctx.read<ExpenseRepository>()),
         ), // ---------- Realtime (WebSocket) ----------
         Provider<RealtimeService>(
-          create: (ctx) =>
-              RealtimeService(() => ctx.read<TokenStorage>().read()),
+          create: (ctx) => RealtimeService(() async {
+            // اول توکن نشستِ جاری از حافظه، وگرنه (مثلاً هنگام این که
+            // AuthProvider هنوز ساخته نشده) fallback به رسانه‌ی امن.
+            final auth = ctx.read<AuthProvider>();
+            return auth.token ?? await ctx.read<TokenStorage>().read();
+          }),
           dispose: (_, s) => s.dispose(),
         ),
         // ---------- Waiter calls (درخواست گارسون) ----------

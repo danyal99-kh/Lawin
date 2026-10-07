@@ -1,3 +1,4 @@
+import 'package:cafe_book_admin/providers/auth_provider.dart';
 import 'package:cafe_book_admin/providers/navigation_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -43,6 +44,31 @@ class AppSidebar extends StatelessWidget {
                     ),
                 ],
               ),
+            ),
+            const Divider(),
+            // خروج کامل نشست (توکن سمت سرور هم باطل می‌شود).
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: compact
+                  ? Tooltip(
+                      message: 'خروج از حساب',
+                      child: IconButton(
+                        icon: const Icon(Icons.logout_outlined),
+                        color: AppColors.danger,
+                        onPressed: () => context.read<AuthProvider>().logout(),
+                      ),
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.read<AuthProvider>().logout(),
+                        icon: const Icon(Icons.logout_outlined, size: 18),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.danger,
+                        ),
+                        label: const Text('خروج از حساب'),
+                      ),
+                    ),
             ),
           ],
         ),

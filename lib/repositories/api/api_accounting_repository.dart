@@ -2,6 +2,7 @@ import '../../core/errors/result.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../models/accounting_entry.dart';
+import '../../models/enums.dart';
 import '../accounting_repository.dart';
 
 /// دفتر حسابداری از Django: درآمد (سفارش‌های پرداخت‌شده) و هزینه‌ها را خودِ
@@ -16,5 +17,11 @@ class ApiAccountingRepository implements AccountingRepository {
         (j) => (j as List)
             .map((e) => AccountingEntry.fromJson(e as Map<String, dynamic>))
             .toList(),
+      );
+
+  @override
+  Future<Result<LedgerVerification>> verifyLedger() => _api.get(
+        ApiEndpoints.accountingVerify,
+        (j) => LedgerVerification.fromJson(j as Map<String, dynamic>),
       );
 }

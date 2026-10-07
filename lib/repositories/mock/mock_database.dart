@@ -297,11 +297,14 @@ class MockDatabase {
         todayStart.year, todayStart.month, todayStart.day - daysAgo, hour);
 
     final expenses = <Expense>[
+      // توجه: خرید مواد اولیه «هزینه» نیست؛ خرید کالا از مسیر Purchase ثبت
+      // می‌شود و بهای تمام‌شده وقتی محصول فروخته شود به سود می‌رسد. اینجا فقط
+      // هزینه‌های واقعی عملیاتی می‌آید، وگرنه خرید دوبار از سود کم می‌شد.
       Expense(
           id: 1,
-          title: 'خرید شیر',
+          title: 'شست‌وشوی روزانه و مواد نظافتی',
           amount: 850000,
-          category: ExpenseCategory.rawMaterials,
+          category: ExpenseCategory.supplies,
           date: at(0, 9)),
       Expense(
           id: 2,

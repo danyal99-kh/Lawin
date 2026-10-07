@@ -27,4 +27,19 @@ class ApiWasteRepository implements WasteRepository {
           'note': draft.note ?? '',
         },
       );
+
+  @override
+  Future<Result<Waste>> update(int id, WasteDraft draft) => _api.patch(
+        ApiEndpoints.waste(id),
+        _waste,
+        // مثل خرید، کالای ضایعات را جابه‌جا نمی‌کنیم؛ فقط مقدار، دلیل و یادداشت.
+        body: {
+          'quantity': draft.quantity,
+          'reason': draft.reason.apiValue,
+          'note': draft.note ?? '',
+        },
+      );
+
+  @override
+  Future<Result<void>> delete(int id) => _api.delete(ApiEndpoints.waste(id));
 }

@@ -42,12 +42,18 @@ const String _ledgerJson = '''
 
 const String _reportJson = '''
 {"start":"2026-09-23T00:00:00+03:30","end":"2026-10-02T00:00:00+03:30",
- "total_sales":3980000,"total_expenses":2070000,"order_count":4,"items_sold_count":11,
+ "total_sales":3980000,"total_cogs":1450000,"gross_profit":2530000,
+ "total_expenses":2070000,"total_waste":120000,"net_profit":340000,
+ "total_purchases":1800000,"inventory_value":4230000,
+ "payment_methods":[],"payments_total":3980000,
+ "cash_flow":{"cash":{"opening":0,"in":0,"out":0},"bank":{"opening":0,"in":0,"out":0},
+              "opening":0,"total_in":0,"total_out":0},
+ "order_count":4,"items_sold_count":11,
  "top_products":[{"product_id":3,"product_name":"کیک","quantity":4,"revenue":440000}],
- "expenses_by_category":[{"category":"raw_materials","amount":1070000},
+ "expenses_by_category":[{"category":"supplies","amount":1070000},
                         {"category":"rent","amount":900000}],
- "daily_points":[{"date":"2026-09-23","sales":0,"expenses":0},
-                 {"date":"2026-10-01","sales":95000,"expenses":1000000}]}
+ "daily_points":[{"date":"2026-09-23","sales":0,"expenses":0,"cogs":0,"waste":0,"profit":0},
+                 {"date":"2026-10-01","sales":95000,"expenses":1000000,"cogs":0,"waste":0,"profit":-905000}]}
 ''';
 
 class _FakeAccountingRepository implements AccountingRepository {
@@ -62,6 +68,10 @@ class _FakeAccountingRepository implements AccountingRepository {
         .map((e) => AccountingEntry.fromJson(e as Map<String, dynamic>))
         .toList());
   }
+
+  @override
+  Future<Result<LedgerVerification>> verifyLedger() async =>
+      const Success(LedgerVerification(ok: true, problems: [], warnings: []));
 }
 
 class _FakeReportRepository implements ReportRepository {
@@ -89,6 +99,10 @@ class _FakeReportRepository implements ReportRepository {
 class _EmptyLedgerRepository implements AccountingRepository {
   @override
   Future<Result<List<AccountingEntry>>> getEntries() async => Success(const []);
+
+  @override
+  Future<Result<LedgerVerification>> verifyLedger() async =>
+      const Success(LedgerVerification(ok: true, problems: [], warnings: []));
 }
 
 Future<AccountingProvider> pumpAccounting(
@@ -174,9 +188,16 @@ void main() {
     testWidgets('summary cards use the server totals', (tester) async {
       await pumpReports(tester, _FakeReportRepository(_reportJson));
 
-      expect(find.text(PersianFormat.money(3980000)), findsAtLeast(1));
-      expect(find.text(PersianFormat.money(2070000)), findsAtLeast(1));
-      expect(find.text(PersianFormat.money(1910000)), findsAtLeast(1));
+      expect(find.text(PersianFormat.money(3980000)), findsAtLeast(1)); // فروش
+      expect(
+          find.text(PersianFormat.money(1450000)), findsAtLeast(1)); // تمام‌شده
+      // کارت «هزینه و ضایعات» جمع دو رقم سرور را نشان می‌دهد:
+      // ۲٬۰۷۰٬۰۰۰ عمومی + ۱۲۰٬۰۰۰ ضایعات
+      expect(find.text(PersianFormat.money(2190000)), findsAtLeast(1));
+      // سود خالص از خود سرور می‌آید، نه از `sales - expenses` که ۱٬۹۱۰٬۰۰۰
+      // می‌شد و COGS/ضایعات را از قلم می‌انداخت.
+      expect(find.text(PersianFormat.money(340000)), findsAtLeast(1));
+      expect(find.text(PersianFormat.money(1910000)), findsNothing);
       expect(find.text(PersianFormat.digits(4)), findsAtLeast(1));
     });
 
@@ -193,7 +214,7 @@ void main() {
       );
 
       expect(find.byType(ExpenseBreakdownPanel), findsOneWidget);
-      expect(find.text(ExpenseCategory.rawMaterials.label), findsOneWidget);
+      expect(find.text(ExpenseCategory.supplies.label), findsOneWidget);
       expect(find.text(ExpenseCategory.rent.label), findsOneWidget);
       expect(find.text(PersianFormat.money(1070000)), findsAtLeast(1));
     });
@@ -352,6 +373,13 @@ class _FlakyAccountingRepository implements AccountingRepository {
     return Success((jsonDecode(_ledgerJson) as List)
         .map((e) => AccountingEntry.fromJson(e as Map<String, dynamic>))
         .toList());
+  }
+
+  @override
+  Future<Result<LedgerVerification>> verifyLedger() async {
+    if (shouldFail()) return Failure(AppFailure.network());
+    return const Success(
+        LedgerVerification(ok: true, problems: [], warnings: []));
   }
 }
 

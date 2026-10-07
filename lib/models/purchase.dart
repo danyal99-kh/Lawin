@@ -13,6 +13,7 @@ class Purchase {
     required this.quantity,
     required this.unitCost,
     required this.purchasedAt,
+    this.account = CashAccount.cash,
     this.note,
   });
 
@@ -27,6 +28,10 @@ class Purchase {
   /// قیمت خرید هر واحد پایه در همین خرید (به تومان).
   final double unitCost;
   final DateTime purchasedAt;
+
+  /// پول خرید از کدام حساب کم شده. فرقش با [PaymentMethod] روش پرداختِ
+  /// مشتری است: اینجا پولِ *کافه* است.
+  final CashAccount account;
   final String? note;
 
   double get totalCost => quantity * unitCost;
@@ -40,6 +45,8 @@ class Purchase {
         quantity: (json['quantity'] as num).toDouble(),
         unitCost: (json['unit_cost'] as num).toDouble(),
         purchasedAt: DateTime.parse(json['purchased_at'] as String).toLocal(),
+        account: parseApiEnum(CashAccount.values, json['account'],
+            fallback: CashAccount.cash),
         note: json['note'] as String?,
       );
 
@@ -51,23 +58,26 @@ class Purchase {
         'quantity': quantity,
         'unit_cost': unitCost,
         'total_cost': totalCost,
+        'account': account.apiValue,
         'purchased_at': purchasedAt.toUtc().toIso8601String(),
         'note': note,
       };
 }
 
-/// داده‌ی فرم ثبت خرید.
+/// داده‌ی فرم ثبت/ویرایش خرید.
 class PurchaseDraft {
   const PurchaseDraft({
     required this.itemId,
     required this.quantity,
     required this.unitCost,
+    this.account = CashAccount.cash,
     this.note,
   });
 
   final int itemId;
   final double quantity;
   final double unitCost;
+  final CashAccount account;
   final String? note;
 
   PurchaseDraft normalized() {
@@ -76,7 +86,16 @@ class PurchaseDraft {
       itemId: itemId,
       quantity: quantity < 0 ? 0 : quantity,
       unitCost: unitCost < 0 ? 0 : unitCost,
+      account: account,
       note: (t == null || t.isEmpty) ? null : t,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'item_id': itemId,
+        'quantity': quantity,
+        'unit_cost': unitCost,
+        'account': account.apiValue,
+        'note': note,
+      };
 }

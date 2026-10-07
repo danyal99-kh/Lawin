@@ -18,10 +18,9 @@ class FilePickerImageService implements ImagePickerService {
   @override
   Future<String?> pickImagePath() async {
     try {
-      final result = await FilePicker.platform
-          .pickFiles(type: FileType.image, allowMultiple: false);
-      if (result == null || result.files.isEmpty) return null;
-      return result.files.single.path;
+      final file = await FilePicker.pickFile(type: FileType.image);
+      if (file == null) return null;
+      return file.path;
     } catch (_) {
       throw AppFailure.validation('انتخاب تصویر انجام نشد. دوباره تلاش کنید.');
     }

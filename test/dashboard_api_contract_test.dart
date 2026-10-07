@@ -33,44 +33,67 @@ void main() {
   group('DashboardSummary.fromJson parses the real Django response', () {
     final summary = DashboardSummary.fromJson(loadRealResponse());
 
-    test('reads the five money/count numbers without recomputing them', () {
-      expect(summary.todaySales, 95000);
-      expect(summary.monthSales, 3980000);
-      expect(summary.todayExpenses, 1000000);
-      expect(summary.monthExpenses, 2070000);
-      expect(summary.todayOrderCount, 1);
+    test('reads the money/count numbers without recomputing them', () {
+      expect(summary.todaySales, 190000);
+      expect(summary.monthSales, 190000);
+      expect(summary.todayExpenses, 1100000);
+      expect(summary.monthExpenses, 1100000);
+      expect(summary.todayWaste, 25000);
+      expect(summary.monthWaste, 25000);
+      expect(summary.todayOrderCount, 2);
     });
 
-    test('profit is derived from the server numbers', () {
-      expect(summary.todayProfit, 95000 - 1000000); // منفی → کارت قرمز
-      expect(summary.monthProfit, 3980000 - 2070000);
+    test('financial metrics are not part of the dashboard payload', () {
+      // بهای تمام‌شده، ارزش انبار و مانده نقدی عمداً از داشبورد حذف شده‌اند؛
+      // این ارقام فقط در بخش‌های حسابداری/گزارش‌ها (که پشت گیت امنیتی‌اند)
+      // دیده می‌شوند.
+      for (final key in [
+        'today_cogs',
+        'month_cogs',
+        'inventory_value',
+        'cash_balance',
+        'bank_balance',
+      ]) {
+        expect(loadRealResponse().containsKey(key), isFalse,
+            reason: 'کلید $key نباید در پاسخ داشبورد باشد');
+      }
+    });
+
+    test('profit comes from the server, not from client-side arithmetic', () {
+      // بک‌اند از دفتر مرکزی می‌فرستد. محاسبه‌ی `sales - expenses` در کلاینت
+      // گذاشته بودیم که COGS و ضایعات را از قلم می‌انداخت: ۱۹۰٬۰۰۰ − ۵۵۰٬۰۰۰
+      // می‌شد ۳۶۰٬۰۰۰ مثبت، در حالی که سود واقعی ۴۸۵٬۰۰۰ تومان زیان است.
+      expect(summary.todayProfit, -1063800);
+      expect(summary.monthProfit, -1063800);
+      expect(summary.todayGrossProfit, 61200);
+      expect(summary.todayProfit,
+          isNot(summary.todaySales - summary.todayExpenses));
     });
 
     test('tables come with their real status', () {
-      expect(summary.tables, hasLength(10));
-      expect(summary.tables.first.number, 1);
+      expect(summary.tables, hasLength(3));
+      expect(summary.tables.first.number, 2);
       expect(summary.tables.first.status, TableStatus.empty);
-      expect(
-        summary.tables.where((t) => t.status == TableStatus.reserved).length,
-        1,
-      );
-      expect(summary.emptyTables, 9);
-      expect(summary.activeTables, 0);
-      expect(summary.reservedTables, 1);
-      expect(summary.tables.fold(0, (s, t) => s + t.id), 55); // ۱..۱۰
+      expect(summary.tables[1].status, TableStatus.active);
+      expect(summary.emptyTables, 2);
+      expect(summary.activeTables, 1);
+      expect(summary.reservedTables, 0);
     });
 
     test('low stock items keep current/min and derive status', () {
-      expect(summary.lowStockItems, hasLength(4));
-      final milk = summary.lowStockItems.firstWhere((i) => i.name == 'شیر');
-      expect(milk.unit, BaseUnit.milliliter);
-      expect(milk.currentStock, 300.0);
-      expect(milk.minStock, 10000.0);
-      expect(milk.unitCost, 55.0);
-      expect(milk.isLow, isTrue);
-      expect(milk.stockStatus, StockStatus.low);
+      expect(summary.lowStockItems, hasLength(3));
 
-      final cocoa = summary.lowStockItems.firstWhere((i) => i.name == 'پودر کاکائو');
+      final syrup =
+          summary.lowStockItems.firstWhere((i) => i.name == 'سیروپ کارامل');
+      expect(syrup.unit, BaseUnit.milliliter);
+      expect(syrup.currentStock, 300.0);
+      expect(syrup.minStock, 500.0);
+      expect(syrup.unitCost, 120.0);
+      expect(syrup.isLow, isTrue);
+      expect(syrup.stockStatus, StockStatus.low);
+
+      final cocoa =
+          summary.lowStockItems.firstWhere((i) => i.name == 'پودر کاکائو');
       expect(cocoa.currentStock, 0.0);
       expect(cocoa.stockStatus, StockStatus.out);
       expect(
@@ -81,16 +104,22 @@ void main() {
     });
 
     test('recent orders keep number, table, status and items', () {
-      expect(summary.recentOrders, hasLength(6));
+      expect(summary.recentOrders, hasLength(3));
       final first = summary.recentOrders.first;
-      expect(first.number, 1014);
-      expect(first.tableNumber, 1);
+      expect(first.number, 1003);
+      expect(first.tableNumber, 8);
       expect(first.status, OrderStatus.cancelled);
       expect(first.isFromCustomer, isTrue);
       expect(first.items, hasLength(1));
-      expect(first.itemCount, 6);
-      expect(first.total, 450000); // از روی آیتم‌ها محاسبه می‌شود
+      expect(first.itemCount, 1);
+      expect(first.total, 95000); // از روی آیتم‌ها محاسبه می‌شود
       expect(first.paidAt, isNull);
+      // سفارش پرداخت‌شده با پرداخت دو روشی هم در همین لیست است
+      final paid = summary.recentOrders
+          .firstWhere((or) => or.paymentStatus == PaymentStatus.paid);
+      // در پرداخت چندروشی، `payment_method` خلاصه است و بک‌اند روش *اول* را
+      // می‌گذارد؛ تفکیک واقعی از جدول Payment می‌آید.
+      expect(paid.paymentMethod, PaymentMethod.cash);
       expect(first.createdAt.isUtc, isFalse); // به وقت محلی تبدیل شده
 
       // جدیدترین اول
@@ -103,9 +132,10 @@ void main() {
     test('recent expenses keep title, amount, category and date', () {
       expect(summary.recentExpenses, isNotEmpty);
       final e = summary.recentExpenses.first;
-      expect(e.id, 5);
-      expect(e.title, 'ییییی');
-      expect(e.amount, 1000000);
+      expect(e.title, 'تعمیرات');
+      expect(e.amount, 250000);
+      expect(e.category, ExpenseCategory.repairs);
+      expect(e.account, CashAccount.cash);
       expect(e.note, isNull);
       final dates = summary.recentExpenses.map((x) => x.date).toList();
       for (var i = 1; i < dates.length; i++) {
@@ -160,7 +190,8 @@ void main() {
   group('MockRepository keeps the same contract (useMock = true)', () {
     test('produces the same 6/5/0 shape from MockDatabase', () {
       final db = MockDatabase.seeded(now: DateTime(2026, 10, 1, 12));
-      final s = MockDashboardRepository(db).buildSummary(DateTime(2026, 10, 1, 12));
+      final s =
+          MockDashboardRepository(db).buildSummary(DateTime(2026, 10, 1, 12));
       expect(s.recentOrders.length, lessThanOrEqualTo(6));
       expect(s.recentExpenses.length, lessThanOrEqualTo(5));
       expect(s.todayOrderCount, greaterThanOrEqualTo(0));
@@ -177,7 +208,9 @@ void main() {
       final s = MockDashboardRepository(db).buildSummary(now);
       final startOfDay = DateTime(now.year, now.month, now.day);
       final expected = db.orders
-          .where((o) => o.status != OrderStatus.cancelled && !o.createdAt.isBefore(startOfDay))
+          .where((o) =>
+              o.status != OrderStatus.cancelled &&
+              !o.createdAt.isBefore(startOfDay))
           .length;
       expect(s.todayOrderCount, expected);
     });

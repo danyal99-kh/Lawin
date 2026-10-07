@@ -50,7 +50,11 @@ enum OrderStatus implements ApiEnum {
 
 enum PaymentStatus implements ApiEnum {
   unpaid('unpaid', 'پرداخت‌نشده'),
-  paid('paid', 'پرداخت‌شده');
+  paid('paid', 'پرداخت‌شده'),
+
+  /// پول برگشته و موجودی مصرف‌شده به انبار برگشته است. این سفارش دیگر در
+  /// درآمد دوره حساب نمی‌شود.
+  refunded('refunded', 'برگشت‌خورده');
 
   const PaymentStatus(this.apiValue, this.label);
   @override
@@ -69,6 +73,83 @@ enum PaymentMethod implements ApiEnum {
   final String apiValue;
   @override
   final String label;
+}
+
+/// حساب نقدی که پولش در دفتر جابه‌جا می‌شود.
+///
+/// تفکیکش عمدی است: [PaymentMethod.cardReader] و [PaymentMethod.cardTransfer]
+/// هر دو در دفتر به «بانک» می‌نشینند، ولی [CashAccount] فقط دو مقدار دارد.
+/// این enum برای پول *خارجی* است (هزینه، خرید کالا) — نه روش پرداخت مشتری.
+enum CashAccount implements ApiEnum {
+  cash('cash', 'صندوق'),
+  bank('bank', 'بانک');
+
+  const CashAccount(this.apiValue, this.label);
+  @override
+  final String apiValue;
+  @override
+  final String label;
+}
+
+/// یک قسط از پرداخت چندروشی. مبلغ‌ها به تومان و مجموعشان باید برابر
+/// مبلغ کل سفارش باشد.
+class PaymentShare {
+  const PaymentShare({required this.method, required this.amount});
+
+  final PaymentMethod method;
+  final int amount;
+
+  Map<String, dynamic> toJson() =>
+      {'method': method.apiValue, 'amount': amount};
+
+  factory PaymentShare.fromJson(Map<String, dynamic> json) => PaymentShare(
+        method: parseApiEnum(PaymentMethod.values, json['method'],
+            fallback: PaymentMethod.cash),
+        amount: (json['amount'] as num).toInt(),
+      );
+}
+
+/// وضعیت بازرسی دفتر حسابداری (`GET /api/v1/accounting/verify/`).
+///
+/// [ok] یعنی دفتر با واقعیت کسب‌وکار می‌خواند. [problems] خطاهایی است که باید
+/// برطرف شوند؛ [warnings] مثل «مانده‌ی صندوق منفی است» وضعیت کسب‌وکار است و
+/// خرابیِ دفتر نیست.
+class LedgerVerification {
+  const LedgerVerification({
+    required this.ok,
+    required this.problems,
+    required this.warnings,
+  });
+
+  final bool ok;
+  final List<LedgerIssue> problems;
+  final List<LedgerIssue> warnings;
+
+  bool get hasWarnings => warnings.isNotEmpty;
+
+  factory LedgerVerification.fromJson(Map<String, dynamic> json) {
+    List<LedgerIssue> list(String key) =>
+        (json[key] as List<dynamic>? ?? const [])
+            .map((e) => LedgerIssue.fromJson(e as Map<String, dynamic>))
+            .toList();
+    return LedgerVerification(
+      ok: json['ok'] as bool? ?? false,
+      problems: list('problems'),
+      warnings: list('warnings'),
+    );
+  }
+}
+
+class LedgerIssue {
+  const LedgerIssue({required this.code, required this.detail});
+
+  final String code;
+  final String detail;
+
+  factory LedgerIssue.fromJson(Map<String, dynamic> json) => LedgerIssue(
+        code: json['code'] as String? ?? 'unknown',
+        detail: json['detail'] as String? ?? '',
+      );
 }
 
 enum TableStatus implements ApiEnum {
@@ -123,7 +204,6 @@ enum StockStatus {
 }
 
 enum ExpenseCategory implements ApiEnum {
-  rawMaterials('raw_materials', 'خرید مواد اولیه'),
   salary('salary', 'حقوق'),
   rent('rent', 'اجاره'),
   water('water', 'آب'),

@@ -3,6 +3,7 @@ import 'package:cafe_book_admin/core/network/api_client.dart';
 import 'package:cafe_book_admin/core/network/token_storage.dart';
 import 'package:cafe_book_admin/models/report.dart';
 import 'package:cafe_book_admin/repositories/api/api_accounting_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_cafe_status_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_category_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_dashboard_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_expense_repository.dart';
@@ -67,13 +68,13 @@ void main() {
     await check('tables', ApiTableRepository(api).getTables());
     await check('orders', ApiOrderRepository(api).getOrders());
     await check('dashboard', ApiDashboardRepository(api).getSummary());
-    await check('waiter-calls active',
-        ApiWaiterCallRepository(api).getActiveCalls());
-    await check('orders/changes (no cursor)',
-        ApiOrderRepository(api).changes(null));
+    await check(
+        'waiter-calls active', ApiWaiterCallRepository(api).getActiveCalls());
+    await check(
+        'orders/changes (no cursor)', ApiOrderRepository(api).changes(null));
     await check('settings', ApiSettingsRepository(api).getSettings());
-    await check('welcome settings',
-        ApiSettingsRepository(api).getWelcomeSettings());
+    await check(
+        'welcome settings', ApiSettingsRepository(api).getWelcomeSettings());
     await check('products', ApiProductRepository(api).getProducts());
     await check('categories', ApiCategoryRepository(api).getCategories());
     await check('inventory items', ApiInventoryRepository(api).getItems());
@@ -81,9 +82,14 @@ void main() {
     await check('purchases', ApiPurchaseRepository(api).getPurchases());
     await check('wastes', ApiWasteRepository(api).getWastes());
     await check('recipes', ApiRecipeRepository(api).getRecipes());
-    await check('accounting entries', ApiAccountingRepository(api).getEntries());
+    await check(
+        'accounting entries', ApiAccountingRepository(api).getEntries());
+    await check(
+        'ledger verification', ApiAccountingRepository(api).verifyLedger());
     await check(
         'reports', ApiReportRepository(api).getReport(ReportPeriod.today));
+    await check(
+        'cafe status', ApiCafeStatusRepository(api).getStatus());
 
     // ignore: avoid_print
     print('\n=== FAILURES (${failures.length}): $failures ===');

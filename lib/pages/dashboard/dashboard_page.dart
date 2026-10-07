@@ -5,6 +5,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/utils/persian_format.dart';
 import '../../core/utils/view_state.dart';
 import '../../models/dashboard_summary.dart';
+import '../../providers/cafe_status_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/waiter_call_provider.dart';
@@ -13,6 +14,7 @@ import '../../responsive/page_container.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
 import '../shell/app_destination.dart';
+import 'widgets/cafe_status_card.dart';
 import 'widgets/dashboard_stats.dart';
 import 'widgets/low_stock_banner.dart';
 import 'widgets/low_stock_panel.dart';
@@ -39,6 +41,10 @@ class _DashboardPageState extends State<DashboardPage> {
       if (!mounted) return;
       final provider = context.read<DashboardProvider>();
       if (provider.state.status == ViewStatus.success) provider.load();
+      // وضعیت کافه هم منبع جداگانه‌ای دارد و باید بعد از هر بازدید تازه شود
+      // تا اگر ادمین دیگری کافه را باز/بسته کرده، همین‌جا دیده شود.
+      final cafe = context.read<CafeStatusProvider>();
+      if (cafe.state.status == ViewStatus.success) cafe.load();
     });
   }
 
@@ -49,6 +55,7 @@ class _DashboardPageState extends State<DashboardPage> {
       onRefresh: () async {
         await Future.wait([
           provider.load(),
+          context.read<CafeStatusProvider>().load(),
           context.read<WaiterCallProvider>().load(),
         ]);
       },
@@ -101,6 +108,9 @@ class _DashboardContent extends StatelessWidget {
             ),
           ],
         ),
+        // وضعیت کافه جای کارت‌های فروش/هزینه/سود را گرفته است.
+        const CafeStatusCard(),
+        const SizedBox(height: AppSpacing.lg),
         DashboardStats(summary: summary),
         if (lowCount > 0) ...[
           const SizedBox(height: AppSpacing.lg),
