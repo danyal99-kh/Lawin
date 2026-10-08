@@ -170,8 +170,19 @@ void main() {
       // unpaid یکی می‌کردیم، UI پولِ برگشتی را اشتباه درآمدِ وصول‌نشده نشان
       // می‌داد؛ پس refund سه حالت مستقل خودش را دارد.
       expect(PaymentStatus.refunded, isNot(PaymentStatus.unpaid));
-      expect(PaymentStatus.values, hasLength(3));
+      expect(PaymentStatus.values, hasLength(4));
       expect(PaymentStatus.refunded.label, isNotEmpty);
+    });
+
+    test('credit closes the order but keeps the money uncollected', () {
+      // نسیه هم یک حالت مستقل است: سفارشِ پرداختِ نسیه‌ای وضعیت «نسیه» می‌گیرد
+      // تا UI نگوید پول وصول شده. distinction با paid حیاتی است چون دفتر
+      // درآمد را موقع نسیه می‌شناسد ولی وجه نقد را موقع تسویه.
+      expect(
+        PaymentStatus.credit.apiValue,
+        isNot(PaymentStatus.paid.apiValue),
+      );
+      expect(PaymentStatus.credit.label, isNotEmpty);
     });
   });
 }

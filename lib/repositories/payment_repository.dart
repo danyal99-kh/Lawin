@@ -16,8 +16,16 @@ abstract interface class PaymentRepository {
   /// [method] پرداخت تک‌روشی است. برای پرداخت چندروشی (مثلاً نقدی + کارتخوان)
   /// از [shares] استفاده کن؛ بک‌اند هم `method` و هم `payments` را می‌پذیرد و
   /// مجموع قسط‌ها باید با مبلغ کل برابر باشد.
-  Future<Result<TableOverview>> pay(int tableId,
-      {required PaymentMethod method, List<PaymentShare>? shares});
+  ///
+  /// [debtorName] فقط وقتی [method] برابر [PaymentMethod.credit] لازم است؛
+  /// نام بدهکار را می‌سازد یا به نسیه‌ی همان نام وصل می‌کند. بقیه‌ی روش‌ها
+  /// آن را نادیده می‌گیرند.
+  Future<Result<TableOverview>> pay(
+    int tableId, {
+    required PaymentMethod method,
+    List<PaymentShare>? shares,
+    String? debtorName,
+  });
 
   /// بازگشت کل مبلغ یک سفارش پرداخت‌شده. فقط refund کامل پشتیبانی می‌شود و
   /// موجودیِ مصرف‌شده هم به انبار برمی‌گردد.

@@ -15,6 +15,8 @@ enum AppDestination {
   accounting('حسابداری', Icons.account_balance_wallet_outlined,
       Icons.account_balance_wallet, 10),
   expenses('هزینه‌ها', Icons.payments_outlined, Icons.payments, 10),
+  receivables('نسیه‌ها', Icons.account_balance_outlined, Icons.account_balance,
+      10),
   reports('گزارش‌ها', Icons.bar_chart_outlined, Icons.bar_chart, 11),
   settings('تنظیمات', Icons.settings_outlined, Icons.settings, 9);
 

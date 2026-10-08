@@ -11,8 +11,12 @@ class ApiPaymentRepository implements PaymentRepository {
   final ApiClient _api;
 
   @override
-  Future<Result<TableOverview>> pay(int tableId,
-          {required PaymentMethod method, List<PaymentShare>? shares}) =>
+  Future<Result<TableOverview>> pay(
+    int tableId, {
+    required PaymentMethod method,
+    List<PaymentShare>? shares,
+    String? debtorName,
+  }) =>
       _api.post(
         ApiEndpoints.tablePay(tableId),
         (j) => TableOverview.fromJson(j as Map<String, dynamic>),
@@ -22,6 +26,11 @@ class ApiPaymentRepository implements PaymentRepository {
           'method': method.apiValue,
           if (shares != null && shares.isNotEmpty)
             'payments': shares.map((s) => s.toJson()).toList(),
+          // فقط نسیه به نام بدهکار نیاز دارد؛ بقیه‌ی روش‌ها آن را دور می‌ریزند.
+          if (method == PaymentMethod.credit &&
+              debtorName != null &&
+              debtorName.trim().isNotEmpty)
+            'debtor_name': debtorName.trim(),
         },
       );
 

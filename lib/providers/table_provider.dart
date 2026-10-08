@@ -87,10 +87,14 @@ class TableProvider extends ChangeNotifier {
 
   /// ثبت پرداخت صورتحساب میز؛ نشست را می‌بندد و میز را آزاد می‌کند.
   /// در صورت موفقیت null، در غیر این صورت خطای قابل‌نمایش برمی‌گردد.
-  Future<AppFailure?> pay(int tableId, PaymentMethod method) async {
+  ///
+  /// [debtorName] فقط برای [PaymentMethod.credit] لازم است.
+  Future<AppFailure?> pay(int tableId, PaymentMethod method,
+      {String? debtorName}) async {
     _busy = true;
     _notify();
-    final result = await _paymentRepository.pay(tableId, method: method);
+    final result = await _paymentRepository
+        .pay(tableId, method: method, debtorName: debtorName);
     AppFailure? failure;
     result.when<void>(
       success: (updated) => _replace(updated),

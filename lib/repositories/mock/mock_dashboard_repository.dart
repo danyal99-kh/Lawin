@@ -71,6 +71,7 @@ class MockDashboardRepository implements DashboardRepository {
       lowStockItems: lowStock,
       recentOrders: recentOrders.take(6).toList(),
       recentExpenses: recentExpenses.take(5).toList(),
+      receivablesBalance: 470000,
     );
   }
 }

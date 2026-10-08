@@ -6,6 +6,7 @@ import 'package:cafe_book_admin/pages/expenses/expenses_page.dart';
 import 'package:cafe_book_admin/pages/inventory/inventory_page.dart';
 import 'package:cafe_book_admin/pages/orders/orders_page.dart';
 import 'package:cafe_book_admin/pages/purchases/purchases_page.dart';
+import 'package:cafe_book_admin/pages/receivables/receivables_page.dart';
 import 'package:cafe_book_admin/pages/recipes/recipes_page.dart';
 import 'package:cafe_book_admin/pages/reports/reports_page.dart';
 import 'package:cafe_book_admin/pages/security/security_gate.dart';
@@ -32,7 +33,6 @@ import '../tables/tables_page.dart';
 import 'app_destination.dart';
 import 'app_drawer.dart';
 import 'app_sidebar.dart';
-import 'placeholder_page.dart';
 import 'shell_header.dart';
 
 /// قاب اصلی برنامه.
@@ -68,12 +68,12 @@ class AppShell extends StatefulWidget {
             section: SecuritySection.accounting,
             child: const AccountingPage(),
           ),
+        AppDestination.receivables => const ReceivablesPage(),
         AppDestination.reports => SecurityGate(
             section: SecuritySection.reports,
             child: const ReportsPage(),
           ),
         AppDestination.settings => const SettingsPage(),
-        _ => PlaceholderPage(destination: d),
       };
 }
 

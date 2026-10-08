@@ -25,16 +25,31 @@ class PaymentDialog extends StatefulWidget {
 
 class _PaymentDialogState extends State<PaymentDialog> {
   PaymentMethod _method = PaymentMethod.cash;
+  final _debtorName = TextEditingController();
   bool _saving = false;
   String? _error;
 
+  bool get _needsDebtor => _method == PaymentMethod.credit;
+
+  @override
+  void dispose() {
+    _debtorName.dispose();
+    super.dispose();
+  }
+
   Future<void> _confirm() async {
+    final name = _debtorName.text.trim();
+    if (_needsDebtor && name.isEmpty) {
+      setState(() => _error = 'برای نسیه، نام بدهکار را وارد کنید.');
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
     });
-    final failure =
-        await context.read<TableProvider>().pay(widget.tableId, _method);
+    final failure = await context
+        .read<TableProvider>()
+        .pay(widget.tableId, _method, debtorName: name);
     if (!mounted) return;
     if (failure == null) {
       Navigator.of(context).pop(true);
@@ -78,10 +93,28 @@ class _PaymentDialogState extends State<PaymentDialog> {
                     showCheckmark: false,
                     selected: _method == m,
                     label: Text(m.label),
-                    onSelected: (_) => setState(() => _method = m),
+                    onSelected: (_) => setState(() {
+                      _method = m;
+                      _error = null;
+                    }),
                   ),
               ],
             ),
+            if (_needsDebtor) ...[
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: _debtorName,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'نام بدهکار',
+                  hintText: 'مثلاً «شرکت آریا»',
+                  helperText: 'میز بسته می‌شود ولی پول بعداً وصول می‌گردد.',
+                ),
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
+              ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Text(_error!,

@@ -126,6 +126,10 @@ class MockReportRepository implements ReportRepository {
         topProducts: topProducts.take(10).toList(),
         expensesByCategory: expensesByCategory,
         dailyPoints: dailyPoints,
+        creditSales: 570000,
+        creditCollections: 200000,
+        cashReceived: totalSales - 200000,
+        outstandingReceivables: 370000,
       ));
     } catch (e) {
       return Failure(AppFailure.unknown(e));

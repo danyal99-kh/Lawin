@@ -57,6 +57,17 @@ abstract final class ApiEndpoints {
   static String expense(int id) => '$_v1/accounting/expenses/$id/';
   static const String transactions = '$_v1/accounting/transactions/';
 
+  // Credit / Accounts Receivable (نسیه)
+  /// فهرست نسیه‌ها: `?debtor=<id>&status=open` — قدیمی‌ترین اول.
+  static const String credits = '$_v1/credits/';
+
+  /// بدهکارها با جمع مانده‌شان (`?q=` جست‌وجوی نام).
+  static const String creditDebtors = '$_v1/credits/debtors/';
+  static String creditDebtor(int id) => '$_v1/credits/debtors/$id/';
+
+  /// GET: وصول‌ها (`?debtor=<id>&credit=<id>`) — POST: ثبت تسویه.
+  static const String creditPayments = '$_v1/credits/payments/';
+
   /// بازرسی یکپارچگی دفتر با واقعیت کسب‌وکار. `ok=false` یعنی دفتر با سفارش‌ها
   /// یا موجودی انبار نمی‌خواند و باید بررسی شود.
   static const String accountingVerify = '$_v1/accounting/verify/';

@@ -27,6 +27,7 @@ class DashboardSummary {
     required this.lowStockItems,
     required this.recentOrders,
     required this.recentExpenses,
+    this.receivablesBalance = 0,
   });
 
   final int todaySales;
@@ -54,6 +55,10 @@ class DashboardSummary {
   final List<Order> recentOrders;
   final List<Expense> recentExpenses;
 
+  /// مانده‌ی حساب بدهکاران (نسیه‌های وصول‌نشده) از دفتر مرکزی؛ لحظه‌ای و
+  /// مستقل از بازه‌ی زمانی.
+  final int receivablesBalance;
+
   int _countTables(TableStatus s) => tables.where((t) => t.status == s).length;
   int get activeTables => _countTables(TableStatus.active);
   int get emptyTables => _countTables(TableStatus.empty);
@@ -80,6 +85,8 @@ class DashboardSummary {
       lowStockItems: list('low_stock_items', InventoryItem.fromJson),
       recentOrders: list('recent_orders', Order.fromJson),
       recentExpenses: list('recent_expenses', Expense.fromJson),
+      receivablesBalance:
+          (json['receivables_balance'] as num?)?.toInt() ?? 0,
     );
   }
 }

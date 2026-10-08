@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/waiter_call.dart';
 import '../repositories/api/api_order_repository.dart';
 import '../services/realtime_service.dart';
+import 'credit_provider.dart';
 import 'dashboard_provider.dart';
 import 'order_provider.dart';
 import 'table_provider.dart';
@@ -18,6 +19,7 @@ class RealtimeSync extends ChangeNotifier {
     required this.tables,
     required this.dashboard,
     required this.waiterCalls,
+    this.credits,
     this.changesRepo,
   });
 
@@ -29,6 +31,9 @@ class RealtimeSync extends ChangeNotifier {
   /// درخواست‌های گارسون؛ رویدادهای آن مستقیم روی همین Provider اعمال می‌شود
   /// (بدون بارگذاری مجدد) تا صدای هشدار بدون تأخیر پخش شود.
   final WaiterCallProvider waiterCalls;
+
+  /// نسیه‌ها (می‌تواند null باشد در تست‌ها)؛ رویدادهای مالی آن را تازه می‌کند.
+  final CreditProvider? credits;
   final ApiOrderRepository? changesRepo;
 
   StreamSubscription? _evSub;
@@ -95,6 +100,9 @@ class RealtimeSync extends ChangeNotifier {
       case 'order_status_changed':
       case 'payment_completed':
       case 'table_status_changed':
+      case 'credit_created':
+      case 'credit_payment_created':
+      case 'credit_settled':
         _refreshSoon();
       case 'waiter_call_created':
       case 'waiter_call_acknowledged':
@@ -117,6 +125,13 @@ class RealtimeSync extends ChangeNotifier {
       orders.load();
       tables.load();
       dashboard.load();
+      final creditProvider = credits;
+      if (creditProvider != null) {
+        creditProvider.refresh();
+        if (creditProvider.selectedId != null) {
+          creditProvider.selectDebtor(creditProvider.selectedId);
+        }
+      }
     });
   }
 
@@ -125,6 +140,7 @@ class RealtimeSync extends ChangeNotifier {
     tables.load();
     dashboard.load();
     waiterCalls.load();
+    credits?.refresh();
     final repo = changesRepo;
     if (repo != null) {
       final r = await repo.changes(_cursor);

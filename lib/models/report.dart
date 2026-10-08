@@ -237,6 +237,10 @@ class SalesReport {
     required this.topProducts,
     required this.expensesByCategory,
     required this.dailyPoints,
+    required this.creditSales,
+    required this.creditCollections,
+    required this.cashReceived,
+    required this.outstandingReceivables,
   });
 
   final DateTime start;
@@ -274,6 +278,12 @@ class SalesReport {
   final List<ProductSales> topProducts;
   final List<ExpenseByCategory> expensesByCategory;
   final List<DailyPoint> dailyPoints;
+
+  /// نسیه‌ها
+  final int creditSales;
+  final int creditCollections;
+  final int cashReceived;
+  final int outstandingReceivables;
 
   int get averageOrderValue =>
       orderCount == 0 ? 0 : (totalSales / orderCount).round();
@@ -315,6 +325,11 @@ class SalesReport {
       expensesByCategory:
           list('expenses_by_category', ExpenseByCategory.fromJson),
       dailyPoints: list('daily_points', DailyPoint.fromJson),
+      creditSales: (json['credit_sales'] as num?)?.toInt() ?? 0,
+      creditCollections: (json['credit_collections'] as num?)?.toInt() ?? 0,
+      cashReceived: (json['cash_received'] as num?)?.toInt() ?? 0,
+      outstandingReceivables:
+          (json['outstanding_receivables'] as num?)?.toInt() ?? 0,
     );
   }
 

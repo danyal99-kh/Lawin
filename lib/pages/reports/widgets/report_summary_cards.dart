@@ -80,6 +80,26 @@ class ReportSummaryCards extends StatelessWidget {
           icon: Icons.calculate_outlined,
           tone: StatusTone.neutral,
         ),
+        MetricCard(
+          label: 'مانده‌ی طلب (نسیه)',
+          value: PersianFormat.money(report.outstandingReceivables),
+          icon: Icons.account_balance_outlined,
+          tone: report.outstandingReceivables > 0
+              ? StatusTone.danger
+              : StatusTone.success,
+        ),
+        MetricCard(
+          label: 'نسیه‌ی فروش در بازه',
+          value: PersianFormat.money(report.creditSales),
+          icon: Icons.receipt_outlined,
+          tone: StatusTone.warning,
+        ),
+        MetricCard(
+          label: 'وصول نسیه در بازه',
+          value: PersianFormat.money(report.creditCollections),
+          icon: Icons.savings_outlined,
+          tone: StatusTone.success,
+        ),
       ],
     );
   }

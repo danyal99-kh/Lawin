@@ -5,6 +5,7 @@ import 'package:cafe_book_admin/models/report.dart';
 import 'package:cafe_book_admin/repositories/api/api_accounting_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_cafe_status_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_category_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_credit_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_dashboard_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_expense_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_inventory_repository.dart';
@@ -90,6 +91,10 @@ void main() {
         'reports', ApiReportRepository(api).getReport(ReportPeriod.today));
     await check(
         'cafe status', ApiCafeStatusRepository(api).getStatus());
+    final creditsRepo = ApiCreditRepository(api);
+    await check('credits', creditsRepo.getCredits());
+    await check('credit debtors', creditsRepo.getDebtors());
+    await check('credit payments', creditsRepo.getPayments());
 
     // ignore: avoid_print
     print('\n=== FAILURES (${failures.length}): $failures ===');

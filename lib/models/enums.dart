@@ -52,6 +52,11 @@ enum PaymentStatus implements ApiEnum {
   unpaid('unpaid', 'پرداخت‌نشده'),
   paid('paid', 'پرداخت‌شده'),
 
+  /// با نسیه تسویه شده: سفارش از دید میز بسته شده ولی پول هنوز وصول نشده
+  /// است. مبلغش به‌صورت «طلب» روی حساب بدهکاران نشسته و فقط لحظه‌ی تسویه‌ی
+  /// نسیه به صندوق/بانک می‌نشیند.
+  credit('credit', 'نسیه'),
+
   /// پول برگشته و موجودی مصرف‌شده به انبار برگشته است. این سفارش دیگر در
   /// درآمد دوره حساب نمی‌شود.
   refunded('refunded', 'برگشت‌خورده');
@@ -66,7 +71,11 @@ enum PaymentStatus implements ApiEnum {
 enum PaymentMethod implements ApiEnum {
   cash('cash', 'نقدی'),
   cardReader('card_reader', 'کارتخوان'),
-  cardTransfer('card_transfer', 'کارت‌به‌کارت');
+  cardTransfer('card_transfer', 'کارت‌به‌کارت'),
+
+  /// نسیه: پول هنوز گرفته نشده. در دفتر «طلب» (بدهکاران) ثبت می‌شود و فقط
+  /// لحظه‌ی تسویه به صندوق/بانک می‌نشیند. ثبتش نیازمند نام بدهکار است.
+  credit('credit', 'نسیه');
 
   const PaymentMethod(this.apiValue, this.label);
   @override

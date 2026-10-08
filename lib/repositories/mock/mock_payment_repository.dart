@@ -24,8 +24,12 @@ class MockPaymentRepository implements PaymentRepository {
       Future<void>.delayed(const Duration(milliseconds: 300));
 
   @override
-  Future<Result<TableOverview>> pay(int tableId,
-      {required PaymentMethod method, List<PaymentShare>? shares}) async {
+  Future<Result<TableOverview>> pay(
+    int tableId, {
+    required PaymentMethod method,
+    List<PaymentShare>? shares,
+    String? debtorName,
+  }) async {
     try {
       await _latency();
       final tableIndex = _db.tables.indexWhere((t) => t.id == tableId);
@@ -65,9 +69,13 @@ class MockPaymentRepository implements PaymentRepository {
         final primary = (shares != null && shares.isNotEmpty)
             ? shares.first.method
             : method;
+        // نسیه: سفارش از دید میز بسته می‌شود ولی پول وصول نشده؛ پس وضعیت
+        // «نسیه» می‌ماند نه «پرداخت‌شده»، تا دفتر درآمد را از طلب جدا نگه دارد.
         _db.orders[index] = order.copyWith(
           status: OrderStatus.paid,
-          paymentStatus: PaymentStatus.paid,
+          paymentStatus: primary == PaymentMethod.credit
+              ? PaymentStatus.credit
+              : PaymentStatus.paid,
           paymentMethod: primary,
           paidAt: now,
         );

@@ -3,6 +3,7 @@ import 'package:cafe_book_admin/core/network/token_storage.dart';
 import 'package:cafe_book_admin/providers/accounting_provider.dart';
 import 'package:cafe_book_admin/providers/auth_provider.dart';
 import 'package:cafe_book_admin/providers/cafe_status_provider.dart';
+import 'package:cafe_book_admin/providers/credit_provider.dart';
 import 'package:cafe_book_admin/providers/dashboard_provider.dart';
 import 'package:cafe_book_admin/providers/expense_provider.dart';
 import 'package:cafe_book_admin/providers/incoming_orders_provider.dart';
@@ -20,6 +21,7 @@ import 'package:cafe_book_admin/repositories/api/api_accounting_repository.dart'
 import 'package:cafe_book_admin/repositories/api/api_cafe_status_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_category_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_dashboard_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_credit_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_expense_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_inventory_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_order_repository.dart';
@@ -63,12 +65,14 @@ import 'package:provider/provider.dart';
 import '../core/config/app_config.dart';
 import '../repositories/cafe_status_repository.dart';
 import '../repositories/category_repository.dart';
+import '../repositories/credit_repository.dart';
 import '../repositories/dashboard_repository.dart';
 import '../repositories/product_repository.dart';
 import '../repositories/mock/mock_cafe_status_repository.dart';
 import '../repositories/mock/mock_category_repository.dart';
 import '../repositories/mock/mock_dashboard_repository.dart';
 import '../repositories/mock/mock_database.dart';
+import '../repositories/mock/mock_credit_repository.dart';
 import '../repositories/mock/mock_product_repository.dart';
 import '../repositories/mock/mock_table_repository.dart';
 import '../services/image_picker_service.dart';
@@ -246,6 +250,16 @@ class AppProviders extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (ctx) => ExpenseProvider(ctx.read<ExpenseRepository>()),
+        ),
+
+        // ---------- نسیه / حساب بدهکاران (Accounts Receivable) ----------
+        Provider<CreditRepository>(
+          create: (ctx) => AppConfig.useMock
+              ? MockCreditRepository()
+              : ApiCreditRepository(ctx.read<ApiClient>()),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => CreditProvider(ctx.read<CreditRepository>()),
         ), // ---------- Realtime (WebSocket) ----------
         Provider<RealtimeService>(
           create: (ctx) => RealtimeService(() async {
@@ -272,6 +286,7 @@ class AppProviders extends StatelessWidget {
             tables: ctx.read<TableProvider>(),
             dashboard: ctx.read<DashboardProvider>(),
             waiterCalls: ctx.read<WaiterCallProvider>(),
+            credits: ctx.read<CreditProvider>(),
             changesRepo: AppConfig.useMock
                 ? null
                 : ApiOrderRepository(ctx.read<ApiClient>()),
