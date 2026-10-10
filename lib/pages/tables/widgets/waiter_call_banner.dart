@@ -49,12 +49,21 @@ class WaiterCallBanner extends StatelessWidget {
                   children: [
                     Text(
                       call.isPending
-                          ? 'درخواست گارسون • ${PersianFormat.duration(call.age)} پیش'
-                          : 'گارسون در راه میز ${PersianFormat.digits(call.tableNumber)} است',
-                      style: theme.titleSmall?.copyWith(color: tone.foreground),
+                          ? 'Call Waiter'
+                          : 'Call Waiter در راه میز ${PersianFormat.digits(call.tableNumber)} است',
+                      style: theme.bodySmall?.copyWith(
+                          color: tone.foreground, fontWeight: FontWeight.w600),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (call.isPending) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        '${PersianFormat.duration(call.age)} پیش',
+                        style: theme.bodySmall?.copyWith(color: tone.foreground),
+                        maxLines: 1,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -80,16 +89,28 @@ class WaiterCallBanner extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: busy ? null : onAcknowledge,
-                    icon: const Icon(Icons.visibility_outlined, size: 18),
+                    icon: const Icon(Icons.visibility_outlined, size: 16),
                     label: const Text('دیدم'),
+                    style: OutlinedButton.styleFrom(
+                      textStyle: theme.labelMedium,
+                      minimumSize: const Size(0, 36),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm),
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: busy ? null : onComplete,
-                    icon: const Icon(Icons.check, size: 18),
+                    icon: const Icon(Icons.check, size: 16),
                     label: const Text('انجام شد'),
+                    style: FilledButton.styleFrom(
+                      textStyle: theme.labelMedium,
+                      minimumSize: const Size(0, 36),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm),
+                    ),
                   ),
                 ),
               ],
@@ -100,8 +121,13 @@ class WaiterCallBanner extends StatelessWidget {
               alignment: AlignmentDirectional.centerEnd,
               child: TextButton.icon(
                 onPressed: busy ? null : onComplete,
-                icon: const Icon(Icons.check, size: 18),
-                label: const Text('انجام شد'),
+                icon: const Icon(Icons.check, size: 16),
+                label: Text('انجام شد', style: theme.labelMedium),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm),
+                ),
               ),
             ),
           ],

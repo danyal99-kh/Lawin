@@ -21,7 +21,7 @@ class WaiterCallsPanel extends StatelessWidget {
     final calls = provider.calls;
 
     return PanelCard(
-      title: 'درخواست‌های گارسون',
+      title: 'درخواست‌های Call Waiter',
       icon: Icons.pan_tool_alt_outlined,
       action: provider.pendingCount > 0
           ? StatusChip(
@@ -57,7 +57,7 @@ class WaiterCallsPanel extends StatelessWidget {
                               Text(
                                 '${calls[i].status.label} • ${PersianFormat.duration(calls[i].age)} پیش',
                                 style: theme.bodySmall,
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],

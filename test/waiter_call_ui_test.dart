@@ -125,7 +125,7 @@ void main() {
           onComplete: (_) {});
 
       expect(find.byType(WaiterCallBanner), findsOneWidget);
-      expect(find.text('درخواست گارسون • ۳ دقیقه پیش'), findsOneWidget);
+      expect(find.text('درخواست ویتر • ۳ دقیقه پیش'), findsOneWidget);
       expect(find.text('دیدم'), findsOneWidget);
       expect(find.text('انجام شد'), findsOneWidget);
       expect(find.text('در انتظار'), findsOneWidget);
