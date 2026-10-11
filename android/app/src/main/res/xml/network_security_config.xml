@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  سیاست امنیت شبکه‌ی اندروید.
+  در مرحله‌ی راه‌اندازی، سرور ممکن است با HTTP محلی (قبل از HTTPS دائمی) در دسترس
+  باشد و اندروید ۹+ به‌طور پیش‌فرض HTTP را مسدود می‌کند؛ بنابراین برای دامنه‌های
+  محلی cleartext مجاز شده است. پس از فعال شدن HTTPS پایدار، مقدار
+  cleartextTrafficPermitted را برای base-config روی false بگذارید تا کل ترافیک
+  صرفاً HTTPS باشد.
+-->
+<network-security-config>
+    <!-- پیش‌فرض: اجازه‌ی HTTP برای راه‌اندازی/شبکه‌ی محلی -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+</network-security-config>

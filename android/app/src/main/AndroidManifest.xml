@@ -1,8 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- دسترسی اینترنت برای اتصال به API/WebSocket بک‌اند در نسخه‌ی release -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="lawin"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"
