@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/persian_format.dart';
 import '../../../models/product.dart';
 import '../../../widgets/app_card.dart';
 import '../../../widgets/product_image.dart';
+import 'product_price.dart';
 import 'product_status_switch.dart';
 
 /// کارت محصول برای موبایل (جایگزین ردیف جدول).
@@ -17,6 +16,7 @@ class ProductListTile extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onToggle,
+    required this.onOffer,
   });
 
   final Product product;
@@ -24,6 +24,7 @@ class ProductListTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onToggle;
+  final VoidCallback onOffer;
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +55,16 @@ class ProductListTile extends StatelessWidget {
                       child: PopupMenuButton<String>(
                         padding: EdgeInsets.zero,
                         tooltip: 'گزینه‌ها',
-                        onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
+                        onSelected: (v) => switch (v) {
+                          'edit' => onEdit(),
+                          'offer' => onOffer(),
+                          _ => onDelete(),
+                        },
                         itemBuilder: (_) => const [
                           PopupMenuItem(value: 'edit', child: Text('ویرایش')),
+                          PopupMenuItem(
+                              value: 'offer',
+                              child: Text('آفر / تخفیف')),
                           PopupMenuItem(value: 'delete', child: Text('حذف')),
                         ],
                       ),
@@ -68,9 +76,7 @@ class ProductListTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.bodySmall),
                 const SizedBox(height: AppSpacing.xs),
-                Text(PersianFormat.money(product.price),
-                    style:
-                        theme.titleSmall?.copyWith(color: AppColors.primary)),
+                ProductPrice(product: product),
                 const SizedBox(height: AppSpacing.xs),
                 ProductStatusSwitch(product: product, onChanged: onToggle),
               ],

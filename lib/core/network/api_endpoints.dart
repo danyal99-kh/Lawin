@@ -44,6 +44,20 @@ abstract final class ApiEndpoints {
   static const String categories = '$_v1/categories/';
   static String category(int id) => '$_v1/categories/$id/';
   static String productRecipe(int id) => '$_v1/products/$id/recipe/';
+
+  // Offers (آفر/تخفیف)
+  /// فهرست آفرها: `?product=<id>&category=<id>&active=1`.
+  static const String offers = '$_v1/offers/';
+
+  /// پیش‌نمایش بدون تغییر: POST با scope/target/percent → قیمت قبل و بعد.
+  static const String offersPreview = '$_v1/offers/preview/';
+
+  /// فعال‌سازی آفر؛ باید `fingerprint` پیش‌نمایش را عیناً بفرستد.
+  static const String offersCreate = '$_v1/offers/create/';
+
+  /// غیرفعال‌سازی دستی یک آفر.
+  static String offerDeactivate(int id) => '$_v1/offers/$id/deactivate/';
+
   // Inventory
   static const String inventoryItems = '$_v1/inventory/items/';
   static String inventoryItem(int id) => '$_v1/inventory/items/$id/';
@@ -71,6 +85,22 @@ abstract final class ApiEndpoints {
   /// بازرسی یکپارچگی دفتر با واقعیت کسب‌وکار. `ok=false` یعنی دفتر با سفارش‌ها
   /// یا موجودی انبار نمی‌خواند و باید بررسی شود.
   static const String accountingVerify = '$_v1/accounting/verify/';
+
+  // Guests (مهمان‌نوازی)
+  /// گروه مهمان‌ها بر اساس نام (`?q=` جست‌وجوی نام).
+  static const String guests = '$_v1/guests/';
+
+  /// جمع کل مهمان‌نوازی فعال (مستقل از جست‌وجو).
+  static const String guestsSummary = '$_v1/guests/summary/';
+
+  /// ثبت‌های فعال یک نام (`?name=`)، جدیدترین اول.
+  static const String guestOrders = '$_v1/guests/orders/';
+
+  /// GET: جزئیات یک ثبت؛ PATCH: تغییر نام.
+  static String guest(int id) => '$_v1/guests/$id/';
+
+  /// لغو مهمان‌نوازی: سند دفتر معکوس و موجودی سفارش برمی‌گردد.
+  static String guestCancel(int id) => '$_v1/guests/$id/cancel/';
 
   // Reports
   static const String reports = '$_v1/reports/';

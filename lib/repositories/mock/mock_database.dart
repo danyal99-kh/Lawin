@@ -6,7 +6,9 @@ import '../../core/errors/app_failure.dart';
 import '../../models/cafe_table.dart';
 import '../../models/enums.dart';
 import '../../models/expense.dart';
+import '../../models/guest.dart';
 import '../../models/inventory_item.dart';
+import '../../models/offer.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
 import '../../models/product_category.dart';
@@ -22,6 +24,7 @@ class MockDatabase {
     required this.products,
     required this.tables,
     required this.orders,
+    required this.guests,
     required this.expenses,
     required this.inventoryItems,
     required this.sessions,
@@ -31,12 +34,19 @@ class MockDatabase {
     required this.lastSessionNumber,
     required int productSeq,
     required int categorySeq,
+    List<Offer>? offers,
+    int offerSeq = 0,
   })  : _productSeq = productSeq,
-        _categorySeq = categorySeq {
+        _categorySeq = categorySeq,
+        offers = offers ?? [],
+        _offerSeq = offerSeq {
     // شناسه‌ی درخواست‌های نمونه از ۱ شروع می‌شود؛ شمارنده نباید با آن‌ها تداخل کند.
     for (final c in waiterCalls) {
       final seed = int.tryParse(c.id.split('-').last);
       if (seed != null && seed > _waiterCallSeq) _waiterCallSeq = seed;
+    }
+    for (final g in guests) {
+      if (g.id > _guestSeq) _guestSeq = g.id;
     }
   }
 
@@ -45,17 +55,21 @@ class MockDatabase {
   final List<Product> products;
   final List<CafeTable> tables;
   final List<Order> orders;
+  final List<Guest> guests;
   final List<Expense> expenses;
   final List<InventoryItem> inventoryItems;
   final List<TableSession> sessions;
   final List<WaiterCall> waiterCalls;
   final Map<int, List<RecipeItem>> recipes;
+  final List<Offer> offers;
   int lastOrderNumber;
   int lastSessionNumber;
 
   int _productSeq;
   int _categorySeq;
   int _waiterCallSeq = 0;
+  int _guestSeq = 0;
+  int _offerSeq = 0;
   List<RecipeItem> recipeFor(int productId) => recipes[productId] ?? const [];
 
   void setRecipe(int productId, List<RecipeItem> items) {
@@ -89,6 +103,19 @@ class MockDatabase {
   String nextSessionId() => 'mock-session-${++lastSessionNumber}';
   int nextCategoryId() => ++_categorySeq;
   int nextProductId() => ++_productSeq;
+  int nextOfferId() => ++_offerSeq;
+
+  /// آفرهای مرتبط با یک محصول (آفرهای خودش + آفرهای دسته‌اش).
+  List<Offer> offersForProduct(int productId) {
+    final product = products.where((p) => p.id == productId).firstOrNull;
+    return offers
+        .where((o) =>
+            (o.scope == OfferScope.product && o.productId == productId) ||
+            (o.scope == OfferScope.category &&
+                product != null &&
+                o.categoryId == product.categoryId))
+        .toList();
+  }
 
   CafeTable tableById(int id) {
     for (final t in tables) {
@@ -141,6 +168,32 @@ class MockDatabase {
   void replaceOrder(Order order) {
     final i = orders.indexWhere((o) => o.id == order.id);
     if (i >= 0) orders[i] = order;
+  }
+
+  int nextGuestId() => ++_guestSeq;
+
+  /// ثبت مهمان فعالِ یک سفارش (اگر باشد)؛ معادل قید یکتایی سفارش در بک‌اند.
+  Guest? activeGuestForOrder(String orderId) {
+    for (final g in guests) {
+      if (g.orderId == orderId && g.isActive) return g;
+    }
+    return null;
+  }
+
+  Guest? guestById(int id) {
+    for (final g in guests) {
+      if (g.id == id) return g;
+    }
+    return null;
+  }
+
+  void replaceGuest(Guest guest) {
+    final i = guests.indexWhere((g) => g.id == guest.id);
+    if (i >= 0) {
+      guests[i] = guest;
+    } else {
+      guests.add(guest);
+    }
   }
 
   /// درخواست فعالِ یک میز (pending/acknowledged)؛ معادل کوئری بک‌اند.
@@ -292,6 +345,35 @@ class MockDatabase {
       table: 7,
       source: OrderSource.customer,
     ));
+
+    // چند سفارش نمونه به‌عنوان مهمان‌نوازی تا صفحه‌ی مهمان‌ها در حالت Mock پر
+    // باشد. نام «آقای رضایی» عمداً تکرار شده تا گروه‌بندی چندسفارشی دیده شود.
+    final guests = <Guest>[];
+    const guestNames = ['آقای رضایی', 'خانم موسوی', 'آقای رضایی'];
+    final guestOrders = orders
+        .where((o) => o.status == OrderStatus.paid)
+        .take(guestNames.length)
+        .toList();
+    for (var i = 0; i < guestOrders.length; i++) {
+      final o = guestOrders[i];
+      final idx = orders.indexOf(o);
+      orders[idx] = o.copyWith(
+        paymentStatus: PaymentStatus.guest,
+        paymentMethod: PaymentMethod.guest,
+        guestName: guestNames[i],
+        guestStatus: GuestStatus.active,
+      );
+      guests.add(Guest(
+        id: i + 1,
+        name: guestNames[i],
+        amount: o.total,
+        status: GuestStatus.active,
+        orderId: o.id,
+        orderNumber: o.number,
+        tableNumber: o.tableNumber ?? 0,
+        createdAt: o.paidAt ?? o.createdAt,
+      ));
+    }
 
     DateTime at(int daysAgo, [int hour = 12]) => DateTime(
         todayStart.year, todayStart.month, todayStart.day - daysAgo, hour);
@@ -553,6 +635,7 @@ class MockDatabase {
       categorySeq: categoryNames.length,
       tables: tables,
       orders: orders,
+      guests: guests,
       expenses: expenses,
       inventoryItems: inventory,
       sessions: sessions,

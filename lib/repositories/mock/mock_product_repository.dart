@@ -7,6 +7,7 @@ import '../../core/errors/result.dart';
 import '../../models/product.dart';
 import '../product_repository.dart';
 import 'mock_database.dart';
+import 'mock_pricing.dart';
 
 /// اعتبارسنجی‌ها همان قوانینی است که بعداً Backend اعمال می‌کند.
 class MockProductRepository implements ProductRepository {
@@ -49,10 +50,21 @@ class MockProductRepository implements ProductRepository {
   Future<Result<List<Product>>> getProducts() async {
     try {
       await _latency();
-      return Success(List.of(_db.products));
+      return Success(_db.products.map(_withOffer).toList());
     } catch (e) {
       return Failure(AppFailure.unknown(e));
     }
+  }
+
+  /// قیمت مؤثر را از آفرهای فعال Mock محاسبه و به محصول ضمیمه می‌کند؛
+  /// قیمت پایه (`price`) دست‌نخورده می‌ماند.
+  Product _withOffer(Product p) {
+    final quote = quoteProduct(_db.offers, p);
+    return p.copyWith(
+      effectivePrice: quote.finalPrice,
+      discountPercent: quote.totalPercent,
+      offerActive: quote.totalPercent > 0,
+    );
   }
 
   @override
@@ -89,7 +101,7 @@ class MockProductRepository implements ProductRepository {
       if (invalid != null) return Failure(invalid);
       final updated = _db.products[index].applyDraft(d);
       _db.products[index] = updated;
-      return Success(updated);
+      return Success(_withOffer(updated));
     } catch (e) {
       return Failure(AppFailure.unknown(e));
     }
@@ -103,7 +115,7 @@ class MockProductRepository implements ProductRepository {
       if (index == -1) return Failure(AppFailure.notFound());
       final updated = _db.products[index].copyWith(isActive: active);
       _db.products[index] = updated;
-      return Success(updated);
+      return Success(_withOffer(updated));
     } catch (e) {
       return Failure(AppFailure.unknown(e));
     }

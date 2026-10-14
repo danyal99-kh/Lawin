@@ -25,8 +25,10 @@ enum TableFilter {
 }
 
 class TableProvider extends ChangeNotifier {
-  TableProvider(this._repository, this._paymentRepository,
-      );
+  TableProvider(
+    this._repository,
+    this._paymentRepository,
+  );
 
   final TableRepository _repository;
   final PaymentRepository _paymentRepository;
@@ -88,13 +90,14 @@ class TableProvider extends ChangeNotifier {
   /// ثبت پرداخت صورتحساب میز؛ نشست را می‌بندد و میز را آزاد می‌کند.
   /// در صورت موفقیت null، در غیر این صورت خطای قابل‌نمایش برمی‌گردد.
   ///
-  /// [debtorName] فقط برای [PaymentMethod.credit] لازم است.
+  /// [debtorName] فقط برای [PaymentMethod.credit] و [guestName] فقط برای
+  /// [PaymentMethod.guest] لازم است.
   Future<AppFailure?> pay(int tableId, PaymentMethod method,
-      {String? debtorName}) async {
+      {String? debtorName, String? guestName}) async {
     _busy = true;
     _notify();
-    final result = await _paymentRepository
-        .pay(tableId, method: method, debtorName: debtorName);
+    final result = await _paymentRepository.pay(tableId,
+        method: method, debtorName: debtorName, guestName: guestName);
     AppFailure? failure;
     result.when<void>(
       success: (updated) => _replace(updated),

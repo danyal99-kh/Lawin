@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/persian_format.dart';
 import '../../../models/product.dart';
 import '../../../widgets/app_card.dart';
 import '../../../widgets/product_image.dart';
+import 'product_price.dart';
 import 'product_status_switch.dart';
 
 /// جدول محصولات برای تبلت/دسکتاپ. ستون‌ها Flex هستند؛ هیچ عرض ثابتی که Overflow بسازد وجود ندارد.
@@ -17,6 +17,7 @@ class ProductsTable extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onToggle,
+    required this.onOffer,
   });
 
   final List<Product> products;
@@ -24,9 +25,10 @@ class ProductsTable extends StatelessWidget {
   final void Function(Product) onEdit;
   final void Function(Product) onDelete;
   final void Function(Product) onToggle;
+  final void Function(Product) onOffer;
 
   static const double _thumb = 44;
-  static const double _actions = 96;
+  static const double _actions = 144;
 
   @override
   Widget build(BuildContext context) {
@@ -92,10 +94,10 @@ class ProductsTable extends StatelessWidget {
                     ),
                     Expanded(
                       flex: 2,
-                      child: Text(PersianFormat.money(p.price),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.titleSmall),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: ProductPrice(product: p, compact: true),
+                      ),
                     ),
                     Expanded(
                       flex: 3,
@@ -114,6 +116,16 @@ class ProductsTable extends StatelessWidget {
                             tooltip: 'ویرایش',
                             icon: const Icon(Icons.edit_outlined),
                             onPressed: () => onEdit(p),
+                          ),
+                          IconButton(
+                            tooltip: 'آفر / تخفیف',
+                            icon: Icon(
+                              p.hasOffer
+                                  ? Icons.local_offer
+                                  : Icons.local_offer_outlined,
+                              color: p.hasOffer ? AppColors.primary : null,
+                            ),
+                            onPressed: () => onOffer(p),
                           ),
                           IconButton(
                             tooltip: 'حذف',

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cafe_book_admin/core/utils/persian_format.dart';
 import 'package:cafe_book_admin/pages/accounting/accounting_page.dart';
 import 'package:cafe_book_admin/pages/expenses/expenses_page.dart';
+import 'package:cafe_book_admin/pages/guests/guests_page.dart';
 import 'package:cafe_book_admin/pages/inventory/inventory_page.dart';
 import 'package:cafe_book_admin/pages/orders/orders_page.dart';
 import 'package:cafe_book_admin/pages/purchases/purchases_page.dart';
@@ -69,6 +70,7 @@ class AppShell extends StatefulWidget {
             child: const AccountingPage(),
           ),
         AppDestination.receivables => const ReceivablesPage(),
+        AppDestination.guests => const GuestsPage(),
         AppDestination.reports => SecurityGate(
             section: SecuritySection.reports,
             child: const ReportsPage(),

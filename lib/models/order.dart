@@ -55,6 +55,8 @@ class Order {
     this.customerNote,
     this.paidAt,
     this.barPrintedAt,
+    this.guestName,
+    this.guestStatus,
     this.version = 1,
   });
 
@@ -77,12 +79,21 @@ class Order {
   /// زمان چاپ سفارش بار؛ برای جلوگیری از چاپ تکراری.
   final DateTime? barPrintedAt;
 
+  /// نام مهمان اگر این سفارش مهمان‌کرده شده باشد (وگرنه null).
+  final String? guestName;
+
+  /// وضعیت ثبت مهمانِ این سفارش؛ null یعنی مهمان نیست.
+  final GuestStatus? guestStatus;
+
   /// نسخه برای رد داده‌ی کهنه هنگام دریافت تغییرات از سرور.
   final int version;
 
   int get total => items.fold(0, (sum, i) => sum + i.lineTotal);
   int get itemCount => items.fold(0, (sum, i) => sum + i.quantity);
   bool get isFromCustomer => source == OrderSource.customer;
+
+  /// این سفارش مهمان‌نوازی فعال است.
+  bool get isGuest => guestStatus == GuestStatus.active;
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final table = json['table'] as Map<String, dynamic>?;
@@ -112,6 +123,11 @@ class Order {
       paidAt: paidAt == null ? null : DateTime.parse(paidAt).toLocal(),
       barPrintedAt:
           printedAt == null ? null : DateTime.parse(printedAt).toLocal(),
+      guestName: json['guest_name'] as String?,
+      guestStatus: json['guest_status'] == null
+          ? null
+          : parseApiEnum(GuestStatus.values, json['guest_status'],
+              fallback: GuestStatus.active),
       version: json['version'] as int? ?? 1,
       sessionId: json['session_id'] as String? ?? '',
     );
@@ -132,6 +148,8 @@ class Order {
         'created_at': createdAt.toUtc().toIso8601String(),
         'paid_at': paidAt?.toUtc().toIso8601String(),
         'bar_printed_at': barPrintedAt?.toUtc().toIso8601String(),
+        'guest_name': guestName,
+        'guest_status': guestStatus?.apiValue,
         'version': version,
         'session_id': sessionId,
       };
@@ -150,11 +168,15 @@ class Order {
     DateTime? createdAt,
     DateTime? paidAt,
     DateTime? barPrintedAt,
+    String? guestName,
+    GuestStatus? guestStatus,
     int? version,
     String? sessionId,
     bool clearPaymentMethod = false,
     bool clearPaidAt = false,
     bool clearBarPrintedAt = false,
+    bool clearGuestName = false,
+    bool clearGuestStatus = false,
   }) {
     return Order(
       id: id ?? this.id,
@@ -172,6 +194,8 @@ class Order {
       paidAt: clearPaidAt ? null : (paidAt ?? this.paidAt),
       barPrintedAt:
           clearBarPrintedAt ? null : (barPrintedAt ?? this.barPrintedAt),
+      guestName: clearGuestName ? null : (guestName ?? this.guestName),
+      guestStatus: clearGuestStatus ? null : (guestStatus ?? this.guestStatus),
       version: version ?? this.version,
       sessionId: sessionId ?? this.sessionId,
     );

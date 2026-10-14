@@ -2,6 +2,7 @@
 import '../../core/errors/app_failure.dart';
 import '../../core/errors/result.dart';
 import '../../models/enums.dart';
+import '../../models/guest.dart';
 import '../../models/order.dart';
 import '../../models/table_overview.dart';
 import '../payment_repository.dart';
@@ -29,11 +30,17 @@ class MockPaymentRepository implements PaymentRepository {
     required PaymentMethod method,
     List<PaymentShare>? shares,
     String? debtorName,
+    String? guestName,
   }) async {
     try {
       await _latency();
       final tableIndex = _db.tables.indexWhere((t) => t.id == tableId);
       if (tableIndex == -1) return Failure(AppFailure.notFound());
+
+      final cleanGuest = (guestName ?? '').trim();
+      if (method == PaymentMethod.guest && cleanGuest.isEmpty) {
+        return Failure(AppFailure.validation('نام مهمان را وارد کنید.'));
+      }
 
       final openOrders = _db.orders
           .where((o) => o.tableId == tableId && o.status.isOpen)
@@ -69,6 +76,32 @@ class MockPaymentRepository implements PaymentRepository {
         final primary = (shares != null && shares.isNotEmpty)
             ? shares.first.method
             : method;
+
+        if (primary == PaymentMethod.guest) {
+          // مهمان: هیچ Payment/صندوقی ثبت نمی‌شود؛ فقط یک ثبت مهمان روی
+          // سفارش می‌آید (سند دفتر سمت بک‌اند). سفارش بسته می‌شود ولی
+          // وضعیتش «مهمان» می‌ماند تا با پرداخت واقعی قاطی نشود.
+          _db.orders[index] = order.copyWith(
+            status: OrderStatus.paid,
+            paymentStatus: PaymentStatus.guest,
+            paymentMethod: PaymentMethod.guest,
+            paidAt: now,
+            guestName: cleanGuest,
+            guestStatus: GuestStatus.active,
+          );
+          _db.replaceGuest(Guest(
+            id: _db.nextGuestId(),
+            name: cleanGuest,
+            amount: order.total,
+            status: GuestStatus.active,
+            orderId: order.id,
+            orderNumber: order.number,
+            tableNumber: order.tableNumber ?? tableId,
+            createdAt: now,
+          ));
+          continue;
+        }
+
         // نسیه: سفارش از دید میز بسته می‌شود ولی پول وصول نشده؛ پس وضعیت
         // «نسیه» می‌ماند نه «پرداخت‌شده»، تا دفتر درآمد را از طلب جدا نگه دارد.
         _db.orders[index] = order.copyWith(

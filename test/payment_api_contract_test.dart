@@ -170,8 +170,17 @@ void main() {
       // unpaid یکی می‌کردیم، UI پولِ برگشتی را اشتباه درآمدِ وصول‌نشده نشان
       // می‌داد؛ پس refund سه حالت مستقل خودش را دارد.
       expect(PaymentStatus.refunded, isNot(PaymentStatus.unpaid));
-      expect(PaymentStatus.values, hasLength(4));
+      expect(PaymentStatus.values, hasLength(5));
       expect(PaymentStatus.refunded.label, isNotEmpty);
+    });
+
+    test('guest closes the order without collecting any money', () {
+      // مهمان یک وضعیت مستقل است، نه paid و نه credit: سفارش بسته می‌شود ولی
+      // هیچ پولی در صندوق/بانک و هیچ طلبی روی بدهکاران نمی‌نشیند.
+      expect(PaymentStatus.guest.apiValue, 'guest');
+      expect(PaymentStatus.guest, isNot(PaymentStatus.paid));
+      expect(PaymentStatus.guest, isNot(PaymentStatus.credit));
+      expect(PaymentStatus.guest.label, isNotEmpty);
     });
 
     test('credit closes the order but keeps the money uncollected', () {

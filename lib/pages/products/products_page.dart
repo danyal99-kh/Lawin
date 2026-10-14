@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/errors/app_failure.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/persian_format.dart';
+import '../../models/offer.dart';
 import '../../models/product.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/product_provider.dart';
@@ -12,6 +13,7 @@ import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
+import 'widgets/offer_dialog.dart';
 import 'widgets/product_filters.dart';
 import 'widgets/product_form.dart';
 import 'widgets/product_list_tile.dart';
@@ -84,6 +86,23 @@ class _ProductsPageState extends State<ProductsPage> {
   Future<void> _toggle(Product product) async {
     final failure = await context.read<ProductProvider>().toggleActive(product);
     if (failure != null && mounted) _snack(failure.userMessage);
+  }
+
+  Future<void> _openOffer(Product product) async {
+    final changed = await showAdaptiveSheet<bool>(
+      context: context,
+      maxDialogWidth: 520,
+      builder: (_) => OfferDialog(
+        scope: OfferScope.product,
+        targetId: product.id,
+        targetName: product.name,
+      ),
+    );
+    if (changed == true && mounted) {
+      // قیمت مؤثر ممکن است تغییر کرده باشد؛ فهرست را تازه می‌کنیم.
+      await context.read<ProductProvider>().load();
+      if (mounted) _snack('آفر به‌روزرسانی شد.');
+    }
   }
 
   @override
@@ -170,6 +189,7 @@ class _ProductsPageState extends State<ProductsPage> {
                             onEdit: _openForm,
                             onDelete: _delete,
                             onToggle: _toggle,
+                            onOffer: _openOffer,
                           );
                         }
                         return Column(
@@ -184,6 +204,7 @@ class _ProductsPageState extends State<ProductsPage> {
                                   onEdit: () => _openForm(p),
                                   onDelete: () => _delete(p),
                                   onToggle: () => _toggle(p),
+                                  onOffer: () => _openOffer(p),
                                 ),
                               ),
                           ],

@@ -4,14 +4,17 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/persian_format.dart';
+import '../../models/offer.dart';
 import '../../models/product_category.dart';
 import '../../providers/category_provider.dart';
 import '../../responsive/adaptive_grid.dart';
 import '../../responsive/page_container.dart';
+import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/state_views.dart';
+import '../products/widgets/offer_dialog.dart';
 import 'widgets/category_form_dialog.dart';
 
 /// مدیریت دسته‌بندی محصولات: ایجاد، ویرایش و حذف (با تأیید).
@@ -57,6 +60,21 @@ class _CategoriesPageState extends State<CategoriesPage> {
     if (!ok || !mounted) return;
     final failure = await context.read<CategoryProvider>().delete(category.id);
     if (mounted) _snack(failure?.userMessage ?? 'دسته‌بندی حذف شد.');
+  }
+
+  Future<void> _openOffer(ProductCategory category) async {
+    final changed = await showAdaptiveSheet<bool>(
+      context: context,
+      maxDialogWidth: 520,
+      builder: (_) => OfferDialog(
+        scope: OfferScope.category,
+        targetId: category.id,
+        targetName: category.name,
+      ),
+    );
+    if (changed == true && mounted) {
+      _snack('آفر دسته‌بندی به‌روزرسانی شد.');
+    }
   }
 
   @override
@@ -110,6 +128,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                           category: c,
                           onEdit: () => _openForm(c),
                           onDelete: () => _delete(c),
+                          onOffer: () => _openOffer(c),
                         ),
                     ],
                   ),
@@ -127,11 +146,13 @@ class _CategoryCard extends StatelessWidget {
     required this.category,
     required this.onEdit,
     required this.onDelete,
+    required this.onOffer,
   });
 
   final ProductCategory category;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onOffer;
 
   @override
   Widget build(BuildContext context) {
@@ -165,6 +186,11 @@ class _CategoryCard extends StatelessWidget {
                     style: theme.bodySmall),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: 'آفر / تخفیف دسته‌بندی',
+            icon: const Icon(Icons.local_offer_outlined),
+            onPressed: onOffer,
           ),
           IconButton(
             tooltip: 'ویرایش',

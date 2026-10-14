@@ -57,6 +57,11 @@ enum PaymentStatus implements ApiEnum {
   /// نسیه به صندوق/بانک می‌نشیند.
   credit('credit', 'نسیه'),
 
+  /// مهمان: پذیرایی رایگان. سفارش از دید میز بسته شده ولی هیچ پولی وصول
+  /// نمی‌شود؛ مبلغش به‌عنوان «هزینه‌ی مهمان‌نوازی» در دفتر می‌آید (بدهکار
+  /// هزینه، بستانکار درآمد فروش). طلبی هم روی بدهکاران نمی‌نشیند.
+  guest('guest', 'مهمان'),
+
   /// پول برگشته و موجودی مصرف‌شده به انبار برگشته است. این سفارش دیگر در
   /// درآمد دوره حساب نمی‌شود.
   refunded('refunded', 'برگشت‌خورده');
@@ -75,13 +80,34 @@ enum PaymentMethod implements ApiEnum {
 
   /// نسیه: پول هنوز گرفته نشده. در دفتر «طلب» (بدهکاران) ثبت می‌شود و فقط
   /// لحظه‌ی تسویه به صندوق/بانک می‌نشیند. ثبتش نیازمند نام بدهکار است.
-  credit('credit', 'نسیه');
+  credit('credit', 'نسیه'),
+
+  /// مهمان: پذیرایی رایگان. هیچ Payment و هیچ صندوق/بانکی ثبت نمی‌شود؛
+  /// فقط سند هزینه‌ی مهمان‌نوازی در دفتر می‌آید. ثبتش نیازمند نام مهمان است.
+  guest('guest', 'مهمان');
 
   const PaymentMethod(this.apiValue, this.label);
   @override
   final String apiValue;
   @override
   final String label;
+}
+
+/// وضعیت یک ثبت مهمان: فعال یا لغوشده.
+///
+/// لغو مهمان یعنی پذیرایی رایگان باطل شده: سند دفتر معکوس، موجودیِ مصرف‌شده
+/// به انبار برمی‌گردد و رکورد حذف نمی‌شود (تاریخ مالی دست‌نخورده می‌ماند).
+enum GuestStatus implements ApiEnum {
+  active('active', 'فعال'),
+  cancelled('cancelled', 'لغوشده');
+
+  const GuestStatus(this.apiValue, this.label);
+  @override
+  final String apiValue;
+  @override
+  final String label;
+
+  bool get isActive => this == GuestStatus.active;
 }
 
 /// حساب نقدی که پولش در دفتر جابه‌جا می‌شود.

@@ -20,11 +20,15 @@ abstract interface class PaymentRepository {
   /// [debtorName] فقط وقتی [method] برابر [PaymentMethod.credit] لازم است؛
   /// نام بدهکار را می‌سازد یا به نسیه‌ی همان نام وصل می‌کند. بقیه‌ی روش‌ها
   /// آن را نادیده می‌گیرند.
+  ///
+  /// [guestName] فقط وقتی [method] برابر [PaymentMethod.guest] لازم است؛
+  /// پذیرایی رایگان را به نام مهمان ثبت می‌کند. هیچ پرداختی ثبت نمی‌شود.
   Future<Result<TableOverview>> pay(
     int tableId, {
     required PaymentMethod method,
     List<PaymentShare>? shares,
     String? debtorName,
+    String? guestName,
   });
 
   /// بازگشت کل مبلغ یک سفارش پرداخت‌شده. فقط refund کامل پشتیبانی می‌شود و

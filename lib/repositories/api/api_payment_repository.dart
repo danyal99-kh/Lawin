@@ -16,6 +16,7 @@ class ApiPaymentRepository implements PaymentRepository {
     required PaymentMethod method,
     List<PaymentShare>? shares,
     String? debtorName,
+    String? guestName,
   }) =>
       _api.post(
         ApiEndpoints.tablePay(tableId),
@@ -31,6 +32,11 @@ class ApiPaymentRepository implements PaymentRepository {
               debtorName != null &&
               debtorName.trim().isNotEmpty)
             'debtor_name': debtorName.trim(),
+          // فقط مهمان به نام مهمان نیاز دارد.
+          if (method == PaymentMethod.guest &&
+              guestName != null &&
+              guestName.trim().isNotEmpty)
+            'guest_name': guestName.trim(),
         },
       );
 

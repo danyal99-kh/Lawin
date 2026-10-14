@@ -26,21 +26,29 @@ class PaymentDialog extends StatefulWidget {
 class _PaymentDialogState extends State<PaymentDialog> {
   PaymentMethod _method = PaymentMethod.cash;
   final _debtorName = TextEditingController();
+  final _guestName = TextEditingController();
   bool _saving = false;
   String? _error;
 
   bool get _needsDebtor => _method == PaymentMethod.credit;
+  bool get _needsGuest => _method == PaymentMethod.guest;
 
   @override
   void dispose() {
     _debtorName.dispose();
+    _guestName.dispose();
     super.dispose();
   }
 
   Future<void> _confirm() async {
     final name = _debtorName.text.trim();
+    final guest = _guestName.text.trim();
     if (_needsDebtor && name.isEmpty) {
       setState(() => _error = 'برای نسیه، نام بدهکار را وارد کنید.');
+      return;
+    }
+    if (_needsGuest && guest.isEmpty) {
+      setState(() => _error = 'برای مهمان، نام مهمان را وارد کنید.');
       return;
     }
     setState(() {
@@ -49,7 +57,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
     });
     final failure = await context
         .read<TableProvider>()
-        .pay(widget.tableId, _method, debtorName: name);
+        .pay(widget.tableId, _method, debtorName: name, guestName: guest);
     if (!mounted) return;
     if (failure == null) {
       Navigator.of(context).pop(true);
@@ -109,6 +117,23 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   labelText: 'نام بدهکار',
                   hintText: 'مثلاً «شرکت آریا»',
                   helperText: 'میز بسته می‌شود ولی پول بعداً وصول می‌گردد.',
+                ),
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
+              ),
+            ],
+            if (_needsGuest) ...[
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: _guestName,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'نام مهمان',
+                  hintText: 'مثلاً «آقای رضایی»',
+                  helperText:
+                      'پذیرایی رایگان: هیچ پولی وصول نمی‌شود و به‌عنوان '
+                      'هزینه‌ی مهمان‌نوازی در دفتر ثبت می‌گردد.',
                 ),
                 onChanged: (_) {
                   if (_error != null) setState(() => _error = null);

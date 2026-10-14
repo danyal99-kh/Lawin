@@ -53,6 +53,14 @@ class OrderCard extends StatelessWidget {
                           label: 'مشتری',
                           tone: StatusTone.info,
                           icon: Icons.smartphone),
+                    if (order.isGuest)
+                      StatusChip(
+                        label: order.guestName == null
+                            ? 'مهمان'
+                            : 'مهمان: ${order.guestName}',
+                        tone: StatusTone.info,
+                        icon: Icons.card_giftcard_outlined,
+                      ),
                   ],
                 ),
               ),

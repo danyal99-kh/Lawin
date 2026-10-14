@@ -8,8 +8,10 @@ import 'package:cafe_book_admin/repositories/api/api_category_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_credit_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_dashboard_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_expense_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_guest_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_inventory_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_order_repository.dart';
+import 'package:cafe_book_admin/repositories/api/api_offer_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_product_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_purchase_repository.dart';
 import 'package:cafe_book_admin/repositories/api/api_recipe_repository.dart';
@@ -78,6 +80,7 @@ void main() {
         'welcome settings', ApiSettingsRepository(api).getWelcomeSettings());
     await check('products', ApiProductRepository(api).getProducts());
     await check('categories', ApiCategoryRepository(api).getCategories());
+    await check('offers', ApiOfferRepository(api).getOffers());
     await check('inventory items', ApiInventoryRepository(api).getItems());
     await check('expenses', ApiExpenseRepository(api).getExpenses());
     await check('purchases', ApiPurchaseRepository(api).getPurchases());
@@ -89,12 +92,14 @@ void main() {
         'ledger verification', ApiAccountingRepository(api).verifyLedger());
     await check(
         'reports', ApiReportRepository(api).getReport(ReportPeriod.today));
-    await check(
-        'cafe status', ApiCafeStatusRepository(api).getStatus());
+    await check('cafe status', ApiCafeStatusRepository(api).getStatus());
     final creditsRepo = ApiCreditRepository(api);
     await check('credits', creditsRepo.getCredits());
     await check('credit debtors', creditsRepo.getDebtors());
     await check('credit payments', creditsRepo.getPayments());
+    final guestsRepo = ApiGuestRepository(api);
+    await check('guests', guestsRepo.getGroups());
+    await check('guests summary', guestsRepo.getSummary());
 
     // ignore: avoid_print
     print('\n=== FAILURES (${failures.length}): $failures ===');
