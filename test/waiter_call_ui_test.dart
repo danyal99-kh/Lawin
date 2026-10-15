@@ -125,7 +125,8 @@ void main() {
           onComplete: (_) {});
 
       expect(find.byType(WaiterCallBanner), findsOneWidget);
-      expect(find.text('درخواست ویتر • ۳ دقیقه پیش'), findsOneWidget);
+      expect(find.text('Call Waiter'), findsOneWidget);
+      expect(find.text('۳ دقیقه پیش'), findsOneWidget);
       expect(find.text('دیدم'), findsOneWidget);
       expect(find.text('انجام شد'), findsOneWidget);
       expect(find.text('در انتظار'), findsOneWidget);
@@ -250,7 +251,7 @@ void main() {
 
       final provider = await pumpPanel(tester, repo);
 
-      expect(find.text('درخواست‌های گارسون'), findsOneWidget);
+      expect(find.text('درخواست‌های Call Waiter'), findsOneWidget);
       expect(find.text('میز ۲'), findsOneWidget);
       expect(find.text('میز ۷'), findsOneWidget);
       expect(find.text('۱ در انتظار'), findsOneWidget);
